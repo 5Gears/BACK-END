@@ -13,7 +13,7 @@ class UsuarioService(
 ) {
     fun listar(): List<Usuario> = repository.findAll()
 
-    fun buscarPorId(id: Long): Usuario? = repository.findById(id).orElse(null)
+    fun buscarPorId(id: Long): Usuario? = repository.findById(id.toInt()).orElse(null)
 
     fun salvar(dto: UsuarioDTO): Usuario {
         val empresa = dto.idEmpresa?.let { empresaRepository.findById(it).orElse(null) }
@@ -27,5 +27,5 @@ class UsuarioService(
         return repository.save(usuario)
     }
 
-    fun deletar(id: Long) = repository.deleteById(id)
+    fun deletar(id: Long) = repository.deleteById(id.toInt())
 }

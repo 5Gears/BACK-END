@@ -7,7 +7,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/FiveGears
     username: root
-    password: #Gf48556583830
+    password: sua_senha
   jpa:
     hibernate:
       ddl-auto: update
