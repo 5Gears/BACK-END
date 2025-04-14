@@ -11,6 +11,8 @@
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="FiveGears_BACKEND" target="1.5" />
+      <module name="projeto-five (1)" target="1.5" />
+      <module name="projeto-five (2)" target="1.5" />
       <module name="projeto-tfg" target="17" />
     </bytecodeTargetLevel>
   </component>
