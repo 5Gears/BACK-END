@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:mysql://meu-banco-na-nuvem:3306/FiveGears?useSSL=false&serverTimezone=UTC
+    username: fivegears_user
+    password: minhaSenhaSegura
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate   # em prod só valida o schema, não cria/atualiza
+    show-sql: false
+
+server:
+  port: 8080
