@@ -5,4 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface LoginRepository : JpaRepository<Login, Int>
+interface LoginRepository : JpaRepository<Login, Int> {
+    fun findByUsuarioEmail(email: String): Login?
+}

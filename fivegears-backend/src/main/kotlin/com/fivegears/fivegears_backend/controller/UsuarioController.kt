@@ -1,8 +1,7 @@
 package com.fivegears.fivegears_backend.controller
 
-import com.fivegears.fivegears_backend.domain.service.UsuarioService
+import com.fivegears.fivegears_backend.domain.service.impl.interfaces.UsuarioService
 import com.fivegears.fivegears_backend.dto.UsuarioDTO
-import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 

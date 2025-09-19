@@ -1,7 +1,7 @@
 package com.fivegears.fivegears_backend.domain.service.impl
 
 import com.fivegears.fivegears_backend.domain.repository.UsuarioRepository
-import com.fivegears.fivegears_backend.domain.service.UsuarioService
+import com.fivegears.fivegears_backend.domain.service.impl.interfaces.UsuarioService
 import com.fivegears.fivegears_backend.dto.UsuarioDTO
 import com.fivegears.fivegears_backend.mapper.UsuarioMapper
 import org.springframework.http.HttpStatus

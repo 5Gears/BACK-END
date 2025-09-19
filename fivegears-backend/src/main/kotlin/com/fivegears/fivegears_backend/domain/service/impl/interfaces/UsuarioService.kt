@@ -1,4 +1,4 @@
-package com.fivegears.fivegears_backend.domain.service
+package com.fivegears.fivegears_backend.domain.service.impl.interfaces
 
 
 import com.fivegears.fivegears_backend.dto.UsuarioDTO

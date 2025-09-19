@@ -24,6 +24,12 @@ data class Usuario(
     @JoinColumn(name = "id_empresa")
     var empresa: Empresa? = null,
 
+    @Column (nullable = false)
+    var area: String,
+
+    @Column(nullable = false)
+    var cargaHoraria: Int = 0,
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_nivel")
     var nivelPermissao: NivelPermissao? = null,
