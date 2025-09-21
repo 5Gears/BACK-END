@@ -13,27 +13,22 @@ class UsuarioController(
 ) {
 
     @GetMapping
-    fun listarTodos(): ResponseEntity<List<UsuarioDTO>> {
-        return usuarioService.listarTodos()
-    }
+    fun listarTodos(): ResponseEntity<List<UsuarioDTO>> =
+        usuarioService.listarTodos()
 
     @GetMapping("/{id}")
-    fun buscarPorId(@PathVariable id: Int): ResponseEntity<UsuarioDTO> {
-        return usuarioService.buscarPorId(id)
-    }
+    fun buscarPorId(@PathVariable id: Int): ResponseEntity<UsuarioDTO> =
+        usuarioService.buscarPorId(id)
 
     @PostMapping
-    fun criar(@RequestBody dto: UsuarioDTO): ResponseEntity<UsuarioDTO> {
-        return usuarioService.criar(dto)
-    }
+    fun criar(@RequestBody dto: UsuarioDTO): ResponseEntity<UsuarioDTO> =
+        usuarioService.criar(dto)
 
     @PutMapping("/{id}")
-    fun atualizar(@PathVariable id: Int, @RequestBody dto: UsuarioDTO): ResponseEntity<UsuarioDTO> {
-        return usuarioService.atualizar(id, dto)
-    }
+    fun atualizar(@PathVariable id: Int, @RequestBody dto: UsuarioDTO): ResponseEntity<UsuarioDTO> =
+        usuarioService.atualizar(id, dto)
 
     @DeleteMapping("/{id}")
-    fun deletar(@PathVariable id: Int): ResponseEntity<Void> {
-        return usuarioService.deletar(id)
-    }
+    fun deletar(@PathVariable id: Int): ResponseEntity<Void> =
+        usuarioService.deletar(id)
 }

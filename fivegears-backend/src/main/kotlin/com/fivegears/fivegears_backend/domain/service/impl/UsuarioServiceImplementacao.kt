@@ -13,38 +13,38 @@ class UsuarioServiceImplementacao(
     private val usuarioRepository: UsuarioRepository
 ) : UsuarioService {
 
-    override fun listarTodos(): ResponseEntity<List<UsuarioDTO>> {
-        val usuarios = usuarioRepository.findAll().map { UsuarioMapper.toDTO(it) }
-        return ResponseEntity.ok(usuarios)
+    override fun listarTodos(): ResponseEntity<List<UsuarioDTO>> =
+        ResponseEntity.ok(usuarioRepository.findAll().map { UsuarioMapper.toDTO(it) })
+
+    override fun buscarPorId(id: Int): ResponseEntity<UsuarioDTO> =
+        usuarioRepository.findById(id)
+            .map { ResponseEntity.ok(UsuarioMapper.toDTO(it)) }
+            .orElse(ResponseEntity.notFound().build())
+
+    override fun criar(dto: UsuarioDTO): ResponseEntity<UsuarioDTO> {
+        val entity = UsuarioMapper.toEntity(dto)
+        val saved = usuarioRepository.save(entity)
+        return ResponseEntity.ok(UsuarioMapper.toDTO(saved))
     }
 
-    override fun buscarPorId(id: Int): ResponseEntity<UsuarioDTO> {
-        val usuario = usuarioRepository.findById(id)
-        return if (usuario.isPresent) {
-            ResponseEntity.ok(UsuarioMapper.toDTO(usuario.get()))
+    override fun atualizar(id: Int, dto: UsuarioDTO): ResponseEntity<UsuarioDTO> {
+        val existente = usuarioRepository.findById(id)
+        return if (existente.isPresent) {
+            val usuario = existente.get().apply {
+                nome = dto.nome
+                email = dto.email
+                cpf = dto.cpf
+                telefone = dto.telefone
+                area = dto.area
+                cargaHoraria = dto.cargaHoraria
+                valorHora = dto.valorHora
+                empresa = dto.idEmpresa?.let { com.fivegears.fivegears_backend.entity.Empresa(it) }
+                nivelPermissao = dto.idNivel?.let { com.fivegears.fivegears_backend.entity.NivelPermissao(it) }
+                status = dto.idStatus?.let { com.fivegears.fivegears_backend.entity.StatusUsuario(it) }
+            }
+            ResponseEntity.ok(UsuarioMapper.toDTO(usuarioRepository.save(usuario)))
         } else {
-            ResponseEntity.status(HttpStatus.NOT_FOUND).build()
-        }
-    }
-
-    override fun criar(usuarioDTO: UsuarioDTO): ResponseEntity<UsuarioDTO> {
-        val entity = UsuarioMapper.toEntity(usuarioDTO)
-        val salvo = usuarioRepository.save(entity)
-        return ResponseEntity.status(HttpStatus.CREATED).body(UsuarioMapper.toDTO(salvo))
-    }
-
-    override fun atualizar(id: Int, usuarioDTO: UsuarioDTO): ResponseEntity<UsuarioDTO> {
-        val usuario = usuarioRepository.findById(id)
-        return if (usuario.isPresent) {
-            val atualizado = usuario.get().copy(
-                nome = usuarioDTO.nome,
-                email = usuarioDTO.email,
-                telefone = usuarioDTO.telefone
-            )
-            val salvo = usuarioRepository.save(atualizado)
-            ResponseEntity.ok(UsuarioMapper.toDTO(salvo))
-        } else {
-            ResponseEntity.status(HttpStatus.NOT_FOUND).build()
+            ResponseEntity.notFound().build()
         }
     }
 
@@ -53,7 +53,7 @@ class UsuarioServiceImplementacao(
             usuarioRepository.deleteById(id)
             ResponseEntity.noContent().build()
         } else {
-            ResponseEntity.status(HttpStatus.NOT_FOUND).build()
+            ResponseEntity.notFound().build()
         }
     }
 }

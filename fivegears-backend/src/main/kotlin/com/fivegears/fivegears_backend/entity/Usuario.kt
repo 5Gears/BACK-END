@@ -15,35 +15,34 @@ data class Usuario(
     @Column(nullable = false, unique = true)
     var email: String,
 
-    @Column(unique = true, length = 14)
+    @Column(unique = true)
     var cpf: String? = null,
 
     var telefone: String? = null,
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    var area: String? = null,
+
+    @Column(name = "carga_horaria")
+    var cargaHoraria: Int = 0,
+
+    @Column(name = "valor_hora", precision = 10, scale = 2)
+    var valorHora: Double = 0.0,
+
+    @ManyToOne
     @JoinColumn(name = "id_empresa")
     var empresa: Empresa? = null,
 
-    @Column (nullable = false)
-    var area: String,
-
-    @Column(nullable = false)
-    var cargaHoraria: Int = 0,
-
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "id_nivel")
     var nivelPermissao: NivelPermissao? = null,
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "id_status")
-    var statusUsuario: StatusUsuario? = null,
-
-    @OneToOne(mappedBy = "usuario", cascade = [CascadeType.ALL])
-    var login: Login? = null,
+    var status: StatusUsuario? = null,
 
     @OneToMany(mappedBy = "usuario")
-    val chamados: MutableList<ChamadoPipefy> = mutableListOf(),
+    val logins: MutableList<Login> = mutableListOf(),
 
     @OneToMany(mappedBy = "usuario")
-    val auditoria: MutableList<Auditoria> = mutableListOf()
+    val chamados: MutableList<ChamadoPipefy> = mutableListOf()
 )

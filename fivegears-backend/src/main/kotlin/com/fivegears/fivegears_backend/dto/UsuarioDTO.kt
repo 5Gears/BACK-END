@@ -4,11 +4,12 @@ data class UsuarioDTO(
     val id: Int? = null,
     val nome: String,
     val email: String,
-    val cpf: String,
-    val area: String,
-    val cargaHoraria: Int,
+    val cpf: String? = null,
     val telefone: String? = null,
+    val area: String? = null,
+    val cargaHoraria: Int = 0,
+    val valorHora: Double = 0.0,
     val idEmpresa: Int? = null,
-    val idNivelPermissao: Int? = null,
-    val idStatusUsuario: Int? = null
+    val idNivel: Int? = null,
+    val idStatus: Int? = null
 )
