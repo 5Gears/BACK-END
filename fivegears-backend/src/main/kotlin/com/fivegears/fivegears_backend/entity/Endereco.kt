@@ -12,13 +12,17 @@ data class Endereco(
     @Column(nullable = false)
     var rua: String,
 
-    var numero: String?,
-    var bairro: String?,
-    var cidade: String?,
-    var estado: String?,
-    var cep: String?,
+    var numero: String? = null,
+    var bairro: String? = null,
+    var cidade: String? = null,
+    var estado: String? = null,
+    var cep: String? = null,
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "id_empresa")
-    var empresa: Empresa? = null
+    var empresa: Empresa? = null,
+
+    @ManyToOne
+    @JoinColumn(name = "id_cliente")
+    var cliente: Cliente? = null
 )

@@ -17,12 +17,11 @@ data class Empresa(
     @Column(nullable = false, unique = true, length = 18)
     var cnpj: String,
 
-    @OneToMany(mappedBy = "empresa")
-    val enderecos: MutableList<Endereco> = mutableListOf(),
+    @OneToMany(mappedBy = "empresa", cascade = [CascadeType.ALL], orphanRemoval = true)
+    var enderecos: MutableList<Endereco> = mutableListOf(),
 
     @OneToMany(mappedBy = "empresa")
     val usuarios: MutableList<Usuario> = mutableListOf()
-){
-
+) {
     constructor(id: Int) : this(id, "", null, "")
 }

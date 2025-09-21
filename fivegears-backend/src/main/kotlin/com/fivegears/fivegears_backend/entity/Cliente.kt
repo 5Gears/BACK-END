@@ -17,6 +17,8 @@ data class Cliente(
 
     var emailResponsavel: String? = null,
 
-    @OneToMany(mappedBy = "cliente")
-    val projetos: MutableList<Projeto> = mutableListOf()
-)
+    @OneToMany(mappedBy = "cliente", cascade = [CascadeType.ALL], orphanRemoval = true)
+    var enderecos: MutableList<Endereco> = mutableListOf()
+) {
+    constructor(id: Int) : this(id, "", "", null)
+}
