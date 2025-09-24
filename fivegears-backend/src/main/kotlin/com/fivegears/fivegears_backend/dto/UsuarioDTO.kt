@@ -10,6 +10,5 @@ data class UsuarioDTO(
     val cargaHoraria: Int = 0,
     val valorHora: Double = 0.0,
     val idEmpresa: Int? = null,
-    val idNivel: Int? = null,
-    val idStatus: Int? = null
+    val idNivel: Int? = null
 )

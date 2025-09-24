@@ -16,5 +16,8 @@ data class Login(
     @Column(nullable = false)
     var senha: String,
 
-    var ultimoLogin: java.time.LocalDateTime? = null
+    @OneToMany(mappedBy = "login", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    val sessoes: List<Sessao> = mutableListOf()
 )
+
+

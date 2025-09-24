@@ -40,7 +40,6 @@ class UsuarioServiceImplementacao(
                 valorHora = dto.valorHora
                 empresa = dto.idEmpresa?.let { com.fivegears.fivegears_backend.entity.Empresa(it) }
                 nivelPermissao = dto.idNivel?.let { com.fivegears.fivegears_backend.entity.NivelPermissao(it) }
-                status = dto.idStatus?.let { com.fivegears.fivegears_backend.entity.StatusUsuario(it) }
             }
             ResponseEntity.ok(UsuarioMapper.toDTO(usuarioRepository.save(usuario)))
         } else {

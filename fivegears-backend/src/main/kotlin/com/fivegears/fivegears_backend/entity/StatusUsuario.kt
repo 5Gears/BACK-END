@@ -13,9 +13,6 @@ data class StatusUsuario(
     var nome: String,
 
     var descricao: String? = null,
-
-    @OneToMany(mappedBy = "statusUsuario")
-    val usuarios: MutableList<Usuario> = mutableListOf()
 ){
     constructor(id: Int) : this(id, "", null)
 }

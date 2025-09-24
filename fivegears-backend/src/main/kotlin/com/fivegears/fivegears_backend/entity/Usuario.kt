@@ -1,6 +1,7 @@
 package com.fivegears.fivegears_backend.entity
 
 import jakarta.persistence.*
+import java.math.BigDecimal
 
 @Entity
 @Table(name = "usuario")
@@ -25,7 +26,7 @@ data class Usuario(
     @Column(name = "carga_horaria")
     var cargaHoraria: Int = 0,
 
-    @Column(name = "valor_hora", precision = 10, scale = 2)
+    @Column(name = "valor_hora")
     var valorHora: Double = 0.0,
 
     @ManyToOne
@@ -34,15 +35,6 @@ data class Usuario(
 
     @ManyToOne
     @JoinColumn(name = "id_nivel")
-    var nivelPermissao: NivelPermissao? = null,
-
-    @ManyToOne
-    @JoinColumn(name = "id_status")
-    var status: StatusUsuario? = null,
-
-    @OneToMany(mappedBy = "usuario")
-    val logins: MutableList<Login> = mutableListOf(),
-
-    @OneToMany(mappedBy = "usuario")
-    val chamados: MutableList<ChamadoPipefy> = mutableListOf()
+    var nivelPermissao: NivelPermissao? = null
 )
+
