@@ -1,5 +1,6 @@
 package com.fivegears.fivegears_backend.domain.service.impl
 
+import com.fivegears.fivegears_backend.domain.repository.LoginRepository
 import com.fivegears.fivegears_backend.domain.repository.UsuarioRepository
 import com.fivegears.fivegears_backend.domain.service.impl.interfaces.UsuarioService
 import com.fivegears.fivegears_backend.dto.UsuarioDTO
@@ -10,7 +11,8 @@ import org.springframework.stereotype.Service
 
 @Service
 class UsuarioServiceImplementacao(
-    private val usuarioRepository: UsuarioRepository
+    private val usuarioRepository: UsuarioRepository,
+    private val loginRepository: LoginRepository
 ) : UsuarioService {
 
     override fun listarTodos(): ResponseEntity<List<UsuarioDTO>> =
@@ -22,9 +24,18 @@ class UsuarioServiceImplementacao(
             .orElse(ResponseEntity.notFound().build())
 
     override fun criar(dto: UsuarioDTO): ResponseEntity<UsuarioDTO> {
+        // Cria o usuário
         val entity = UsuarioMapper.toEntity(dto)
-        val saved = usuarioRepository.save(entity)
-        return ResponseEntity.ok(UsuarioMapper.toDTO(saved))
+        val savedUsuario = usuarioRepository.save(entity)
+
+        // Cria o login com senha padrão
+        val login = com.fivegears.fivegears_backend.entity.Login(
+            usuario = savedUsuario,
+            senha = savedUsuario.email
+        )
+        loginRepository.save(login)
+
+        return ResponseEntity.ok(UsuarioMapper.toDTO(savedUsuario))
     }
 
     override fun atualizar(id: Int, dto: UsuarioDTO): ResponseEntity<UsuarioDTO> {

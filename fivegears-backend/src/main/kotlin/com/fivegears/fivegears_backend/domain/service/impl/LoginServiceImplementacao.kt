@@ -20,39 +20,49 @@ class LoginServiceImplementacao(
     private val statusUsuarioRepository: StatusUsuarioRepository
 ) : LoginService {
 
-    override fun login(email: String, senha: String): Usuario {
-        // Busca o login pelo email do usuário
-        val login = loginRepository.findAll().find { it.usuario.email == email }
-            ?: throw RuntimeException("Usuário não encontrado")
+    override fun primeiroAcesso(usuarioId: Int, novaSenha: String) {
+        val login = loginRepository.findByUsuarioId(usuarioId)
+            ?: throw RuntimeException("Login não encontrado")
 
-        if (login.senha != senha) {
-            throw RuntimeException("Senha incorreta")
+        // Verifica se a senha ainda é a padrão (o próprio email)
+        if (login.senha != login.usuario.email) {
+            throw RuntimeException("Senha padrão já alterada ou usuário já acessou")
         }
 
-        // Busca o status ONLINE
+        // Verifica se a nova senha contém o email
+        if (novaSenha.contains(login.usuario.email, ignoreCase = true)) {
+            throw RuntimeException("A nova senha não pode conter o e-mail do usuário")
+        }
+
+        login.senha = novaSenha
+        loginRepository.save(login)
+    }
+
+    override fun login(email: String, senha: String): Usuario {
+        // Busca login pelo email
+        val login = loginRepository.findByUsuarioEmail(email)
+            ?: throw RuntimeException("Usuário não encontrado")
+
+        if (login.senha != senha) throw RuntimeException("Senha incorreta")
+
         val onlineStatus = statusUsuarioRepository.findById(1)
             .orElseThrow { RuntimeException("Status ONLINE não encontrado") }
-
-        // Busca o status OFFLINE (para possível logout)
         val offlineStatus = statusUsuarioRepository.findById(2)
             .orElseThrow { RuntimeException("Status OFFLINE não encontrado") }
 
-        // Verifica se já existe uma sessão ativa
+        // Verifica sessão ativa
         val sessaoAtiva = sessaoRepository.findByLoginIdAndFimSessaoIsNull(login.id!!)
-
-        // Se já estiver online e for FUNCIONARIO ou GERENTE, desconecta a sessão antiga
         sessaoAtiva?.let {
             val nivel = login.usuario.nivelPermissao?.nome
             if (nivel == "FUNCIONARIO" || nivel == "GERENTE") {
+                // Finaliza sessão antiga
                 it.status = offlineStatus
                 it.fimSessao = LocalDateTime.now()
                 sessaoRepository.save(it)
-            } else {
-                // Para outros níveis, podemos lançar exceção ou permitir múltiplas sessões
             }
         }
 
-        // Cria uma nova sessão
+        // Cria nova sessão
         val novaSessao = Sessao(
             login = login,
             status = onlineStatus,
@@ -65,25 +75,20 @@ class LoginServiceImplementacao(
     }
 
     override fun logout(usuarioId: Int) {
-        val usuario = usuarioRepository.findById(usuarioId)
-            .orElseThrow { RuntimeException("Usuário não encontrado") }
+        val sessaoAtiva = getSessaoAtiva(usuarioId)
+            ?: throw RuntimeException("Sessão não encontrada")
 
         val offlineStatus = statusUsuarioRepository.findById(2)
             .orElseThrow { RuntimeException("Status OFFLINE não encontrado") }
 
-        // Encontra a sessão ativa do usuário (login)
-        val sessaoAtiva = usuario.id?.let {
-            sessaoRepository.findByLoginIdAndFimSessaoIsNull(
-                usuarioRepository.findById(it).get().let { u ->
-                    u.id?.let { loginId -> loginRepository.findAll().find { l -> l.usuario.id == loginId }!!.id!! }
-                } ?: throw RuntimeException("Login não encontrado")
-            )
-        }
+        sessaoAtiva.status = offlineStatus
+        sessaoAtiva.fimSessao = LocalDateTime.now()
+        sessaoRepository.save(sessaoAtiva)
+    }
 
-        sessaoAtiva?.let {
-            it.status = offlineStatus
-            it.fimSessao = LocalDateTime.now()
-            sessaoRepository.save(it)
-        }
+
+    override fun getSessaoAtiva(usuarioId: Int): Sessao? {
+        val login = loginRepository.findByUsuarioId(usuarioId) ?: return null
+        return sessaoRepository.findByLoginIdAndFimSessaoIsNull(login.id!!)
     }
 }
