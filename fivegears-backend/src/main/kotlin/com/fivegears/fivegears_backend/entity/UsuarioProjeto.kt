@@ -1,26 +1,38 @@
 package com.fivegears.fivegears_backend.entity
 
 import jakarta.persistence.*
+import java.time.LocalDateTime
 
 @Entity
 @Table(name = "usuario_projeto")
 @IdClass(UsuarioProjetoId::class)
 data class UsuarioProjeto(
     @Id
-    @ManyToOne @JoinColumn(name = "id_projeto")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_projeto")
     val projeto: Projeto,
 
     @Id
-    @ManyToOne @JoinColumn(name = "id_usuario")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario")
     val usuario: Usuario,
 
-    @ManyToOne @JoinColumn(name = "id_cargo")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_cargo")
     val cargo: Cargo,
 
+    @Column(name = "status")
+    var status: String = "ALOCADO",
+
+    @Column(name = "horas_alocadas")
     var horasAlocadas: Int? = 0,
+
+    @Column(name = "horas_por_dia")
     var horasPorDia: Int? = 0,
-    var dataAlocacao: java.time.LocalDate? = java.time.LocalDate.now(),
-    var dataSaida: java.time.LocalDate? = null
+
+    @Column(name = "data_alocacao")
+    var dataAlocacao: LocalDateTime? = LocalDateTime.now(),
+
+    @Column(name = "data_saida")
+    var dataSaida: LocalDateTime? = null
 )
-
-

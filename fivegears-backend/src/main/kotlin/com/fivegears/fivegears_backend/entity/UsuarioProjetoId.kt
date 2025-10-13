@@ -1,6 +1,8 @@
 package com.fivegears.fivegears_backend.entity
 
+import java.io.Serializable
+
 data class UsuarioProjetoId(
-    val projeto: Int = 0,
-    val usuario: Int = 0
-) : java.io.Serializable
+    val projeto: Int? = null,
+    val usuario: Int? = null
+) : Serializable
