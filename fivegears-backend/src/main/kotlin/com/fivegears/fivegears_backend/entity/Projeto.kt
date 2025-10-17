@@ -1,5 +1,6 @@
 package com.fivegears.fivegears_backend.entity
 
+import com.fivegears.fivegears_backend.entity.enum.StatusProjeto
 import jakarta.persistence.*
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -20,10 +21,15 @@ data class Projeto(
     var nome: String,
 
     var descricao: String? = null,
+
     @Column(name = "tempo_estimado_horas")
     var tempoEstimadoHoras: Int? = null,
+
     var orcamento: BigDecimal? = null,
-    var status: String? = "EM_PLANEJAMENTO",
+
+    @Enumerated(EnumType.STRING)
+    var status: StatusProjeto = StatusProjeto.EM_PLANEJAMENTO,
+
     var dataInicio: LocalDate? = null,
     var dataFim: LocalDate? = null,
 

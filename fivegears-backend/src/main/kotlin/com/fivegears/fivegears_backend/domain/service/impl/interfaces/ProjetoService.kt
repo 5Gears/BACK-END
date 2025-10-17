@@ -20,4 +20,8 @@ interface ProjetoService {
     fun adicionarUsuarioAoProjeto(idProjeto: Int, idUsuario: Int, idCargo: Int): UsuarioProjeto
 
     fun removerUsuarioDoProjeto(idProjeto: Int, idUsuario: Int)
+
+    fun aceitarProjeto(id: Int): Projeto
+
+    fun negarProjeto(id: Int): Projeto
 }

@@ -6,6 +6,7 @@ import com.fivegears.fivegears_backend.domain.repository.UsuarioProjetoRepositor
 import com.fivegears.fivegears_backend.domain.repository.UsuarioRepository
 import com.fivegears.fivegears_backend.domain.service.impl.interfaces.ProjetoService
 import com.fivegears.fivegears_backend.entity.*
+import com.fivegears.fivegears_backend.entity.enum.StatusProjeto
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -78,4 +79,23 @@ class ProjetoServiceImplementacao(
 
         usuarioProjetoRepository.delete(usuarioProjeto)
     }
+
+    override fun aceitarProjeto(id: Int): Projeto {
+        val projeto = buscarPorId(id)
+        if (projeto.status != StatusProjeto.EM_PLANEJAMENTO) {
+            throw RuntimeException("Projeto não pode ser aceito pois não está em planejamento.")
+        }
+        projeto.status = StatusProjeto.EM_DESENVOLVIMENTO
+        return projetoRepository.save(projeto)
+    }
+
+    override fun negarProjeto(id: Int): Projeto {
+        val projeto = buscarPorId(id)
+        if (projeto.status != StatusProjeto.EM_PLANEJAMENTO) {
+            throw RuntimeException("Projeto não pode ser negado pois não está em planejamento.")
+        }
+        projeto.status = StatusProjeto.NEGADO
+        return projetoRepository.save(projeto)
+    }
+
 }

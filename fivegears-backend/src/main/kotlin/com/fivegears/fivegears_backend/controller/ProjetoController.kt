@@ -72,4 +72,18 @@ class ProjetoController(
         projetoService.removerUsuarioDoProjeto(idProjeto, idUsuario)
         return ResponseEntity.noContent().build()
     }
+
+    @PutMapping("/{id}/aceitar")
+    @Operation(summary = "Aceitar um projeto (muda status para EM_DESENVOLVIMENTO)")
+    fun aceitarProjeto(@PathVariable id: Int): ResponseEntity<Projeto> {
+        val projeto = projetoService.aceitarProjeto(id)
+        return ResponseEntity.ok(projeto)
+    }
+
+    @PutMapping("/{id}/negar")
+    @Operation(summary = "Negar um projeto (muda status para NEGADO)")
+    fun negarProjeto(@PathVariable id: Int): ResponseEntity<Projeto> {
+        val projeto = projetoService.negarProjeto(id)
+        return ResponseEntity.ok(projeto)
+    }
 }
