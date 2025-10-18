@@ -5,7 +5,7 @@ import com.fivegears.fivegears_backend.domain.repository.UsuarioRepository
 import com.fivegears.fivegears_backend.domain.service.impl.interfaces.UsuarioService
 import com.fivegears.fivegears_backend.dto.UsuarioDTO
 import com.fivegears.fivegears_backend.mapper.UsuarioMapper
-import org.springframework.http.HttpStatus
+import com.fivegears.fivegears_backend.util.HashUtils
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 
@@ -28,10 +28,10 @@ class UsuarioServiceImplementacao(
         val entity = UsuarioMapper.toEntity(dto)
         val savedUsuario = usuarioRepository.save(entity)
 
-        // Cria o login com senha padrão
+        // Cria o login com senha padrão (hash do email)
         val login = com.fivegears.fivegears_backend.entity.Login(
             usuario = savedUsuario,
-            senha = savedUsuario.email
+            senha = HashUtils.sha256(savedUsuario.email)
         )
         loginRepository.save(login)
 

@@ -38,5 +38,8 @@ data class Projeto(
     var responsavel: Usuario,
 
     @OneToMany(mappedBy = "projeto", cascade = [CascadeType.ALL], orphanRemoval = true)
-    val usuarios: MutableList<UsuarioProjeto> = mutableListOf()
+    val usuarios: MutableList<UsuarioProjeto> = mutableListOf(),
+
+    var competenciasRequeridas: String? = null
+
 )

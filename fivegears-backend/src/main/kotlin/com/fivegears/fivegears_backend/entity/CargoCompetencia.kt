@@ -12,6 +12,11 @@ data class CargoCompetencia(
 
     @Id
     @ManyToOne @JoinColumn(name = "id_competencia")
-    val competencia: Competencia
+    val competencia: Competencia,
+
+    val peso: Int = 1,
+
+    val tipoRelacao: String? = null
 )
+
 

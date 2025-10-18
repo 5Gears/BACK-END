@@ -1,5 +1,6 @@
 package com.fivegears.fivegears_backend.entity
 
+import com.fivegears.fivegears_backend.entity.enum.Senioridade
 import jakarta.persistence.*
 
 @Entity
@@ -12,5 +13,8 @@ data class Cargo(
     @Column(nullable = false)
     var nome: String,
 
-    var descricao: String? = null
+    var descricao: String? = null,
+
+    @Enumerated(EnumType.STRING)
+    var senioridade: Senioridade = Senioridade.JUNIOR
 )

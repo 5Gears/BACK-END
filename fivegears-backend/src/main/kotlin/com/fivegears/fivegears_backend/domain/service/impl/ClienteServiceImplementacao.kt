@@ -4,6 +4,7 @@ import com.fivegears.fivegears_backend.domain.repository.ClienteRepository
 import com.fivegears.fivegears_backend.domain.service.impl.interfaces.ClienteService
 import com.fivegears.fivegears_backend.dto.ClienteDTO
 import com.fivegears.fivegears_backend.mapper.ClienteMapper
+import com.fivegears.fivegears_backend.mapper.EnderecoMapper
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 
@@ -29,19 +30,19 @@ class ClienteServiceImplementacao(
     override fun atualizar(id: Int, dto: ClienteDTO): ResponseEntity<ClienteDTO> {
         val existente = repository.findById(id)
         return if (existente.isPresent) {
-            val atualizado = existente.get().apply {
+            val cliente = existente.get().apply {
                 nome = dto.nome
                 cnpj = dto.cnpj
                 emailResponsavel = dto.emailResponsavel
 
+                // Atualiza endereços corretamente
                 enderecos.clear()
-                dto.enderecos.forEach {
-                    val endereco = ClienteMapper.toEntity(dto).enderecos
-                    endereco.forEach { e -> e.cliente = this }
-                    enderecos.addAll(endereco)
+                val enderecosAtualizados = dto.enderecos.map { enderecoDTO ->
+                    EnderecoMapper.toEntity(enderecoDTO).apply { this.empresa = empresa }
                 }
+                enderecos.addAll(enderecosAtualizados)
             }
-            ResponseEntity.ok(ClienteMapper.toDTO(repository.save(atualizado)))
+            ResponseEntity.ok(ClienteMapper.toDTO(repository.save(cliente)))
         } else {
             ResponseEntity.notFound().build()
         }

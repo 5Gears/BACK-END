@@ -2,6 +2,7 @@ package com.fivegears.fivegears_backend.entity
 
 import com.fivegears.fivegears_backend.entity.enum.AcaoAuditoria
 import jakarta.persistence.*
+import java.time.LocalDateTime
 
 @Entity
 @Table(name = "auditoria")
@@ -23,9 +24,10 @@ data class Auditoria(
     var valoresAnteriores: String?,
     var valoresNovos: String?,
 
-    @ManyToOne @JoinColumn(name = "usuario_id")
+    @ManyToOne @JoinColumn(name = "usuario_responsavel")
     var usuario: Usuario,
 
-    var dataEvento: java.time.LocalDateTime? = java.time.LocalDateTime.now()
+    @Column(name = "data_evento", updatable = false, insertable = false)
+    var dataEvento: LocalDateTime? = null
 )
 

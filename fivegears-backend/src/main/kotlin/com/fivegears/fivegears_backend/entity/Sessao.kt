@@ -14,14 +14,14 @@ data class Sessao(
     @JoinColumn(name = "id_login", nullable = false)
     val login: Login,
 
-    @Column(nullable = false)
+    @Column(unique = true, nullable = false)
     var token: String,
 
     @ManyToOne
     @JoinColumn(name = "id_status", nullable = false)
     var status: StatusUsuario,
 
-    @Column(name = "inicio_sessao")
+    @Column(name = "inicio_sessao", insertable = false)
     var inicioSessao: LocalDateTime = LocalDateTime.now(),
 
     @Column(name = "fim_sessao")

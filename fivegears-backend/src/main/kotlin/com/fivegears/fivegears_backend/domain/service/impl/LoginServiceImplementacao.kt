@@ -6,8 +6,8 @@ import com.fivegears.fivegears_backend.domain.repository.StatusUsuarioRepository
 import com.fivegears.fivegears_backend.domain.repository.UsuarioRepository
 import com.fivegears.fivegears_backend.domain.service.impl.interfaces.LoginService
 import com.fivegears.fivegears_backend.entity.Sessao
-import com.fivegears.fivegears_backend.entity.StatusUsuario
 import com.fivegears.fivegears_backend.entity.Usuario
+import com.fivegears.fivegears_backend.util.HashUtils
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 import java.util.*
@@ -24,8 +24,8 @@ class LoginServiceImplementacao(
         val login = loginRepository.findByUsuarioId(usuarioId)
             ?: throw RuntimeException("Login não encontrado")
 
-        // Verifica se a senha ainda é a padrão (o próprio email)
-        if (login.senha != login.usuario.email) {
+        // Verifica se a senha ainda é a padrão (hash do próprio email)
+        if (login.senha != HashUtils.sha256(login.usuario.email)) {
             throw RuntimeException("Senha padrão já alterada ou usuário já acessou")
         }
 
@@ -34,28 +34,28 @@ class LoginServiceImplementacao(
             throw RuntimeException("A nova senha não pode conter o e-mail do usuário")
         }
 
-        login.senha = novaSenha
+        // Salva nova senha com hash
+        login.senha = HashUtils.sha256(novaSenha)
         loginRepository.save(login)
     }
 
     override fun login(email: String, senha: String): Usuario {
-        // Busca login pelo email
         val login = loginRepository.findByUsuarioEmail(email)
             ?: throw RuntimeException("Usuário não encontrado")
 
-        if (login.senha != senha) throw RuntimeException("Senha incorreta")
+        val senhaHash = HashUtils.sha256(senha)
+
+        if (login.senha != senhaHash) throw RuntimeException("Senha incorreta")
 
         val onlineStatus = statusUsuarioRepository.findById(1)
             .orElseThrow { RuntimeException("Status ONLINE não encontrado") }
         val offlineStatus = statusUsuarioRepository.findById(2)
             .orElseThrow { RuntimeException("Status OFFLINE não encontrado") }
 
-        // Verifica sessão ativa
-        val sessaoAtiva = sessaoRepository.findByLoginIdAndFimSessaoIsNull(login.id!!)
-        sessaoAtiva?.let {
+        // Finaliza sessão ativa, se existir, para determinados níveis
+        sessaoRepository.findByLoginIdAndFimSessaoIsNull(login.id!!)?.let {
             val nivel = login.usuario.nivelPermissao?.nome
             if (nivel == "FUNCIONARIO" || nivel == "GERENTE") {
-                // Finaliza sessão antiga
                 it.status = offlineStatus
                 it.fimSessao = LocalDateTime.now()
                 sessaoRepository.save(it)
@@ -85,7 +85,6 @@ class LoginServiceImplementacao(
         sessaoAtiva.fimSessao = LocalDateTime.now()
         sessaoRepository.save(sessaoAtiva)
     }
-
 
     override fun getSessaoAtiva(usuarioId: Int): Sessao? {
         val login = loginRepository.findByUsuarioId(usuarioId) ?: return null

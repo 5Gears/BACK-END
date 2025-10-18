@@ -1,5 +1,6 @@
 package com.fivegears.fivegears_backend.entity
 
+import com.fivegears.fivegears_backend.entity.enum.NivelCompetencia
 import jakarta.persistence.*
 
 @Entity
@@ -12,5 +13,12 @@ data class Competencia(
     @Column(nullable = false)
     var nome: String,
 
-    var descricao: String? = null
+    var descricao: String? = null,
+
+    var codigoEsco: String? = null,
+    var tipo: String? = null,
+    var categoria: String? = null,
+
+    @Enumerated(EnumType.STRING)
+    var nivelRecomendado: NivelCompetencia = NivelCompetencia.BASICO
 )

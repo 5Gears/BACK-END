@@ -35,6 +35,7 @@ data class Usuario(
 
     @ManyToOne
     @JoinColumn(name = "id_nivel")
-    var nivelPermissao: NivelPermissao? = null
+    var nivelPermissao: NivelPermissao? = null,
+
 )
 
