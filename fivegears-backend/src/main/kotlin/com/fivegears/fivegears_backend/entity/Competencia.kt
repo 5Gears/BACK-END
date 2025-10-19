@@ -1,20 +1,19 @@
 package com.fivegears.fivegears_backend.entity
 
-import com.fivegears.fivegears_backend.entity.enum.NivelCompetencia
 import jakarta.persistence.*
+
 @Entity
 @Table(name = "competencia")
 data class Competencia(
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val idCompetencia: Int = 0,  // PK interna
+    @Column(name = "id_competencia")
+    val idCompetencia: Int? = null,
 
-    val nome: String,
-    val descricao: String? = null,
-    val tipo: String? = null,
-    val categoria: String? = null,
+    @Column(nullable = false)
+    var nome: String,
 
-    @Enumerated(EnumType.STRING)
-    val nivelRecomendado: NivelCompetencia = NivelCompetencia.BASICO
+    var descricao: String? = null,
+    var tipo: String? = null,
+    var categoria: String? = null
 )

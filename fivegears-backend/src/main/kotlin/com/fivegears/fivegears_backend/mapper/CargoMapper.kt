@@ -2,7 +2,8 @@ package com.fivegears.fivegears_backend.mapper
 
 import com.fivegears.fivegears_backend.dto.CargoDTO
 import com.fivegears.fivegears_backend.entity.Cargo
-import com.fivegears.fivegears_backend.entity.enum.Senioridade
+import com.fivegears.fivegears_backend.entity.EscoCargo
+import com.fivegears.fivegears_backend.entity.enum.OrigemCargo
 
 object CargoMapper {
 
@@ -10,13 +11,17 @@ object CargoMapper {
         idCargo = entity.idCargo,
         nome = entity.nome,
         descricao = entity.descricao,
-        senioridade = entity.senioridade.name
+        senioridade = entity.senioridade,
+        origem = entity.origem.name, // converte enum -> String
+        idEscoCargo = entity.escoCargo?.idEscoCargo
     )
 
     fun toEntity(dto: CargoDTO): Cargo = Cargo(
-        idCargo = dto.idCargo ?: 0,
+        idCargo = dto.idCargo,
         nome = dto.nome,
         descricao = dto.descricao,
-        senioridade = dto.senioridade?.let { Senioridade.valueOf(it) } ?: Senioridade.JUNIOR
+        senioridade = dto.senioridade!!,
+        origem = dto.origem?.let { OrigemCargo.valueOf(it) } ?: OrigemCargo.INTERNO, // String -> enum
+        escoCargo = dto.idEscoCargo?.let { EscoCargo(it) } // cria apenas com o ID
     )
 }

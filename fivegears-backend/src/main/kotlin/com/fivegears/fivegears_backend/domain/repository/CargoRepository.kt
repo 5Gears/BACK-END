@@ -5,4 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface CargoRepository : JpaRepository<Cargo, Int>
+interface CargoRepository : JpaRepository<Cargo, Int> {
+    fun findByNomeContainingIgnoreCase(nome: String): List<Cargo>
+    fun existsByNome(nome: String): Boolean
+}

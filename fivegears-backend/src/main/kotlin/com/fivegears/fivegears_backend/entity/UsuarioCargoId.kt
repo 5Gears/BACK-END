@@ -1,9 +1,10 @@
 package com.fivegears.fivegears_backend.entity
 
 import jakarta.persistence.Embeddable
+import java.io.Serializable
 
 @Embeddable
 data class UsuarioCargoId(
-    val idUsuario: Int? = 0,
-    val idCargo: Int = 0
-) : java.io.Serializable
+    val idUsuario: Int? = null,
+    val idCargo: Int? = null
+) : Serializable

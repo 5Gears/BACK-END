@@ -1,6 +1,5 @@
 package com.fivegears.fivegears_backend.mapper
 
-import com.fivegears.fivegears_backend.entity.enum.NivelCompetencia
 import com.fivegears.fivegears_backend.dto.CompetenciaDTO
 import com.fivegears.fivegears_backend.entity.Competencia
 
@@ -11,8 +10,7 @@ object CompetenciaMapper {
         nome = entity.nome,
         descricao = entity.descricao,
         tipo = entity.tipo,
-        categoria = entity.categoria,
-        nivelRecomendado = entity.nivelRecomendado.name
+        categoria = entity.categoria
     )
 
     fun toEntity(dto: CompetenciaDTO): Competencia = Competencia(
@@ -20,7 +18,6 @@ object CompetenciaMapper {
         nome = dto.nome,
         descricao = dto.descricao,
         tipo = dto.tipo,
-        categoria = dto.categoria,
-        nivelRecomendado = dto.nivelRecomendado?.let { NivelCompetencia.valueOf(it) } ?: NivelCompetencia.BASICO
+        categoria = dto.categoria
     )
 }

@@ -11,11 +11,10 @@ data class UsuarioCargo(
     @ManyToOne
     @MapsId("idUsuario")
     @JoinColumn(name = "id_usuario")
-    val usuario: Usuario,
+    var usuario: Usuario,
 
     @ManyToOne
     @MapsId("idCargo")
     @JoinColumn(name = "id_cargo")
-    val cargo: Cargo
+    var cargo: Cargo
 )
-

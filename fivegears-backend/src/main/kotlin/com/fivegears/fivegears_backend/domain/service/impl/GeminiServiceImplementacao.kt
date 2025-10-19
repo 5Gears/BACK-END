@@ -7,7 +7,9 @@ import com.fivegears.fivegears_backend.entity.enum.NivelSoftSkill
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fivegears.fivegears_backend.domain.repository.*
+import org.slf4j.LoggerFactory
 import org.springframework.http.*
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
 
@@ -21,21 +23,34 @@ class GeminiServiceImplementacao(
     private val usuarioProjetoRepository: UsuarioProjetoRepository
 ) {
 
-    private val restTemplate = RestTemplate()
+    private val log = LoggerFactory.getLogger(GeminiServiceImplementacao::class.java)
     private val mapper = ObjectMapper()
 
+    // 🔒 Configura o RestTemplate com timeout de 10 segundos
+    private val restTemplate: RestTemplate by lazy {
+        val factory = HttpComponentsClientHttpRequestFactory().apply {
+            setConnectTimeout(10_000)
+            setReadTimeout(10_000)
+        }
+        RestTemplate(factory)
+    }
+
     private val promptBase = """
-        Você é um assistente de banco de dados FiveGears.
-        Regras:
-        1. Não invente informações.
-        2. Retorne apenas filtros JSON para buscar usuários.
-        3. Se não souber a resposta ou a consulta não for permitida, retorne {"erro": "Consulta não encontrada"}.
+        Você é um assistente do sistema FiveGears.
+        Sua função é interpretar comandos do gerente e gerar filtros JSON
+        para buscar usuários do banco.
+        
+        ⚠️ Regras:
+        - Responda **apenas** com JSON puro.
+        - Não adicione comentários ou texto fora do JSON.
+        - Se não souber responder, retorne {"erro": "Consulta não encontrada"}.
     """.trimIndent()
 
     private val comandosPermitidos = listOf(
         "listar competencias do usuario",
         "listar softskills do usuario",
-        "montar equipe com"
+        "montar equipe com",
+        "filtrar usuarios com"
     )
 
     private fun validarMensagem(mensagem: String): Boolean {
@@ -43,14 +58,21 @@ class GeminiServiceImplementacao(
         return comandosPermitidos.any { mensagemLower.contains(it) }
     }
 
-    // Gera filtro via Gemini (sugestão JSON)
+    // 🧠 Gera o filtro de busca com base na mensagem do gerente
     fun gerarFiltro(mensagem: String): FiltroAlocacao {
-        if (!validarMensagem(mensagem)) return FiltroAlocacao()
+        log.info("🧩 Solicitando filtro ao Gemini para comando: \"{}\"", mensagem)
+
+        if (!validarMensagem(mensagem)) {
+            log.warn("🚫 Comando inválido: '{}'", mensagem)
+            return FiltroAlocacao()
+        }
 
         val promptFinal = """
             $promptBase
-            Comando do gerente: "$mensagem"
-            Responda apenas com JSON que contenha:
+            
+            Comando: "$mensagem"
+            
+            Retorne um JSON no formato:
             {
               "competencias": ["Kotlin", "SQL"],
               "cargoMinimo": "PLENO",
@@ -64,46 +86,51 @@ class GeminiServiceImplementacao(
         val headers = HttpHeaders().apply { contentType = MediaType.APPLICATION_JSON }
         val entity = HttpEntity(body, headers)
         val url = "${config.baseUrl}?key=${config.apiKey}"
-        val response = restTemplate.exchange(url, HttpMethod.POST, entity, String::class.java)
-
-        val texto = try {
-            val json: JsonNode = mapper.readTree(response.body)
-            json["candidates"]?.get(0)?.get("content")?.get("parts")?.get(0)?.asText() ?: "{}"
-        } catch (e: Exception) {
-            "{}"
-        }
 
         return try {
-            mapper.readValue(texto, FiltroAlocacao::class.java)
+            val response = restTemplate.exchange(url, HttpMethod.POST, entity, String::class.java)
+            log.info("✅ Gemini retornou status {}", response.statusCode.value())
+
+
+            // Parsing robusto
+            val texto = try {
+                val json: JsonNode = mapper.readTree(response.body)
+                val partes = json["candidates"]?.get(0)?.path("content")?.path("parts")
+                partes?.get(0)?.path("text")?.asText() ?: "{}"
+            } catch (e: Exception) {
+                log.error("⚠️ Erro ao processar resposta do Gemini: {}", e.message)
+                "{}"
+            }
+
+            val filtro = mapper.readValue(texto, FiltroAlocacao::class.java)
+            log.info("🎯 Filtro gerado com sucesso: {}", mapper.writeValueAsString(filtro))
+            filtro
         } catch (e: Exception) {
+            log.error("❌ Erro ao chamar Gemini API: {}", e.message)
             FiltroAlocacao()
         }
     }
 
-    // Retorna usuários filtrados do banco conforme o JSON do Gemini
+    // 🔍 Filtra os usuários de acordo com o filtro gerado
     fun buscarUsuarios(filtro: FiltroAlocacao): List<UsuarioAlocadoDTO> {
+        log.info("🔎 Iniciando busca de usuários com filtro: {}", mapper.writeValueAsString(filtro))
         val usuarios = usuarioRepository.findAll()
 
-        return usuarios.filter { usuario ->
-            // Cargo mínimo
+        val filtrados = usuarios.filter { usuario ->
             val cargosUsuario = usuarioCargoRepository.findByUsuario(usuario)
             val atendeCargo = cargosUsuario.any { it.cargo.senioridade >= filtro.cargoMinimo }
             if (!atendeCargo) return@filter false
 
-            // Competências
             val competenciasUsuario = usuarioCompetenciaRepository.findByUsuario(usuario)
                 .map { it.competencia.nome }
             if (!filtro.competencias.all { competenciasUsuario.contains(it) }) return@filter false
 
-            // Soft skills
             val softSkillsUsuario = usuarioSoftSkillRepository.findByUsuario(usuario)
                 .associate { it.softSkill.nome to it.nivel.toEstrela() }
             if (!filtro.softSkills.all { softSkillsUsuario.containsKey(it) }) return@filter false
 
-            // Valor hora
             if (usuario.valorHora > filtro.valorHoraMax) return@filter false
 
-            // Horas disponíveis
             val horasAtuais = usuarioProjetoRepository.findByUsuario(usuario)
                 .filter { it.status.name == "ALOCADO" }
                 .sumOf { it.horasPorDia }
@@ -135,9 +162,12 @@ class GeminiServiceImplementacao(
                 competencias = competencias
             )
         }
+
+        log.info("✅ {} usuários encontrados pelo filtro.", filtrados.size)
+        return filtrados
     }
 
-    // Extensão para converter nível soft skill em estrelas
+    // 🌟 Conversão de nível de soft skill em "estrelas"
     private fun NivelSoftSkill.toEstrela(): Int = when (this) {
         NivelSoftSkill.HORRIVEL -> 0
         NivelSoftSkill.BAIXO -> 1
