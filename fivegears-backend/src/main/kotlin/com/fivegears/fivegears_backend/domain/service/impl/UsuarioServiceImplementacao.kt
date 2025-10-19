@@ -1,7 +1,6 @@
 package com.fivegears.fivegears_backend.domain.service.impl
 
-import com.fivegears.fivegears_backend.domain.repository.LoginRepository
-import com.fivegears.fivegears_backend.domain.repository.UsuarioRepository
+import com.fivegears.fivegears_backend.domain.repository.*
 import com.fivegears.fivegears_backend.domain.service.impl.interfaces.UsuarioService
 import com.fivegears.fivegears_backend.dto.UsuarioDTO
 import com.fivegears.fivegears_backend.mapper.UsuarioMapper
@@ -12,7 +11,10 @@ import org.springframework.stereotype.Service
 @Service
 class UsuarioServiceImplementacao(
     private val usuarioRepository: UsuarioRepository,
-    private val loginRepository: LoginRepository
+    private val loginRepository: LoginRepository,
+    private val cargoRepository: CargoRepository,
+    private val usuarioCargoRepository: UsuarioCargoRepository,
+    private val nivelPermissaoRepository: NivelPermissaoRepository
 ) : UsuarioService {
 
     override fun listarTodos(): ResponseEntity<List<UsuarioDTO>> =
@@ -25,8 +27,8 @@ class UsuarioServiceImplementacao(
 
     override fun criar(dto: UsuarioDTO): ResponseEntity<UsuarioDTO> {
         // Cria o usuário
-        val entity = UsuarioMapper.toEntity(dto)
-        val savedUsuario = usuarioRepository.save(entity)
+        val usuario = UsuarioMapper.toEntity(dto)
+        val savedUsuario = usuarioRepository.save(usuario)
 
         // Cria o login com senha padrão (hash do email)
         val login = com.fivegears.fivegears_backend.entity.Login(
@@ -35,7 +37,24 @@ class UsuarioServiceImplementacao(
         )
         loginRepository.save(login)
 
-        return ResponseEntity.ok(UsuarioMapper.toDTO(savedUsuario))
+        // Associa cargo se fornecido no DTO
+        dto.idCargo?.let { cargoId ->
+            val cargo = cargoRepository.findById(cargoId)
+                .orElseThrow { RuntimeException("Cargo não encontrado: $cargoId") }
+
+            val usuarioCargo = com.fivegears.fivegears_backend.entity.UsuarioCargo(
+                id = com.fivegears.fivegears_backend.entity.UsuarioCargoId(
+                    idUsuario = savedUsuario.id,
+                    idCargo = cargo.idCargo
+                ),
+                usuario = savedUsuario,
+                cargo = cargo
+            )
+            usuarioCargoRepository.save(usuarioCargo)
+        }
+
+        // Retorna DTO com idCargo incluído
+        return ResponseEntity.ok(UsuarioMapper.toDTO(savedUsuario, dto.idCargo))
     }
 
     override fun atualizar(id: Int, dto: UsuarioDTO): ResponseEntity<UsuarioDTO> {
@@ -50,13 +69,38 @@ class UsuarioServiceImplementacao(
                 cargaHoraria = dto.cargaHoraria
                 valorHora = dto.valorHora
                 empresa = dto.idEmpresa?.let { com.fivegears.fivegears_backend.entity.Empresa(it) }
-                nivelPermissao = dto.idNivel?.let { com.fivegears.fivegears_backend.entity.NivelPermissao(it) }
+
+                nivelPermissao = dto.idNivel?.let { idNivel ->
+                    nivelPermissaoRepository.findById(idNivel)
+                        .orElseThrow { RuntimeException("Nível de permissão não encontrado: $idNivel") }
+                }
             }
-            ResponseEntity.ok(UsuarioMapper.toDTO(usuarioRepository.save(usuario)))
+
+            val updatedUsuario = usuarioRepository.save(usuario)
+
+            dto.idCargo?.let { cargoId ->
+                val cargo = cargoRepository.findById(cargoId)
+                    .orElseThrow { RuntimeException("Cargo não encontrado: $cargoId") }
+
+                val usuarioCargoId = com.fivegears.fivegears_backend.entity.UsuarioCargoId(
+                    idUsuario = updatedUsuario.id,
+                    idCargo = cargo.idCargo
+                )
+
+                val usuarioCargo = com.fivegears.fivegears_backend.entity.UsuarioCargo(
+                    id = usuarioCargoId,
+                    usuario = updatedUsuario,
+                    cargo = cargo
+                )
+                usuarioCargoRepository.save(usuarioCargo)
+            }
+
+            ResponseEntity.ok(UsuarioMapper.toDTO(updatedUsuario, dto.idCargo))
         } else {
             ResponseEntity.notFound().build()
         }
     }
+
 
     override fun deletar(id: Int): ResponseEntity<Void> {
         return if (usuarioRepository.existsById(id)) {

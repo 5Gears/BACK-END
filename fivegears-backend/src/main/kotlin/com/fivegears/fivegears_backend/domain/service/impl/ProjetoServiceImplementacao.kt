@@ -74,7 +74,7 @@ class ProjetoServiceImplementacao(
 
     override fun removerUsuarioDoProjeto(idProjeto: Int, idUsuario: Int) {
         val usuarioProjeto = usuarioProjetoRepository.findByProjetoId(idProjeto)
-            .firstOrNull { it.usuario.id == idUsuario }
+            .firstOrNull { it.usuario?.id == idUsuario }
             ?: throw RuntimeException("Usuário não está vinculado a este projeto")
 
         usuarioProjetoRepository.delete(usuarioProjeto)

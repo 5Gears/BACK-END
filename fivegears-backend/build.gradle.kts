@@ -21,6 +21,11 @@ repositories {
 }
 
 dependencies {
+	implementation("org.apache.poi:poi-ooxml:5.2.3")
+	implementation("org.json:json:20231013")
+	implementation("org.springframework.boot:spring-boot-starter-web")
+	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
 	implementation("mysql:mysql-connector-java:8.1.0")
 	implementation("mysql:mysql-connector-java:8.0.33")
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0")

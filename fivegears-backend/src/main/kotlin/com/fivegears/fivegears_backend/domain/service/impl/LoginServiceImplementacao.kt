@@ -7,6 +7,7 @@ import com.fivegears.fivegears_backend.domain.repository.UsuarioRepository
 import com.fivegears.fivegears_backend.domain.service.impl.interfaces.LoginService
 import com.fivegears.fivegears_backend.entity.Sessao
 import com.fivegears.fivegears_backend.entity.Usuario
+import com.fivegears.fivegears_backend.entity.enum.NivelPermissaoEnum
 import com.fivegears.fivegears_backend.util.HashUtils
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
@@ -55,7 +56,7 @@ class LoginServiceImplementacao(
         // Finaliza sessão ativa, se existir, para determinados níveis
         sessaoRepository.findByLoginIdAndFimSessaoIsNull(login.id!!)?.let {
             val nivel = login.usuario.nivelPermissao?.nome
-            if (nivel == "FUNCIONARIO" || nivel == "GERENTE") {
+            if (nivel == NivelPermissaoEnum.FUNCIONARIO || nivel == NivelPermissaoEnum.GERENTE) {
                 it.status = offlineStatus
                 it.fimSessao = LocalDateTime.now()
                 sessaoRepository.save(it)

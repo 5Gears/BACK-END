@@ -1,5 +1,6 @@
 package com.fivegears.fivegears_backend.entity
 
+import com.fivegears.fivegears_backend.entity.enum.TipoRelacaoCompetencia
 import jakarta.persistence.*
 
 @Entity
@@ -14,9 +15,10 @@ data class CargoCompetencia(
     @ManyToOne @JoinColumn(name = "id_competencia")
     val competencia: Competencia,
 
-    val peso: Int = 1,
+    var peso: Int = 1,
 
-    val tipoRelacao: String? = null
+    @Enumerated(EnumType.STRING)
+    val tipoRelacao: TipoRelacaoCompetencia = TipoRelacaoCompetencia.RECOMENDADA
 )
 
 

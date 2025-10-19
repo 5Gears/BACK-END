@@ -11,7 +11,7 @@ data class ChamadoPipefy(
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario")
-    var usuario: Usuario? = null,
+    val usuario: Usuario? = null,
 
     var titulo: String?,
     var descricao: String?,

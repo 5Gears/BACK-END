@@ -7,13 +7,14 @@ import com.fivegears.fivegears_backend.entity.Usuario
 
 object UsuarioMapper {
 
-    fun toDTO(entity: Usuario): UsuarioDTO = UsuarioDTO(
-        id = entity.id,
+    fun toDTO(entity: Usuario, idCargo: Int? = null): UsuarioDTO = UsuarioDTO(
+        idUsuario = entity.id,
         nome = entity.nome,
         email = entity.email,
         cpf = entity.cpf,
         telefone = entity.telefone,
         area = entity.area,
+        idCargo = idCargo,
         cargaHoraria = entity.cargaHoraria,
         valorHora = entity.valorHora,
         idEmpresa = entity.empresa?.id,
@@ -21,7 +22,7 @@ object UsuarioMapper {
     )
 
     fun toEntity(dto: UsuarioDTO): Usuario = Usuario(
-        id = dto.id,
+        id = dto.idUsuario,
         nome = dto.nome,
         email = dto.email,
         cpf = dto.cpf,

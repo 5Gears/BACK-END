@@ -25,7 +25,7 @@ data class UsuarioSoftSkill(
     @Column(name = "ultima_avaliacao")
     var ultimaAvaliacao: LocalDate? = null,
 
-    @Enumerated(EnumType.STRING)
+    @Enumerated()
     var fonteAvaliacao: FonteAvaliacao = FonteAvaliacao.GERENTE,
 
     var comentario: String? = null

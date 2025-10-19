@@ -1,6 +1,7 @@
 package com.fivegears.fivegears_backend.entity
 
 import com.fivegears.fivegears_backend.entity.enum.StatusAlocacao
+import com.fasterxml.jackson.annotation.JsonIgnore
 import jakarta.persistence.*
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -9,22 +10,25 @@ import java.time.LocalDateTime
 @Table(name = "usuario_projeto")
 @IdClass(UsuarioProjetoId::class)
 data class UsuarioProjeto(
-    @Id
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_projeto")
-    val projeto: Projeto,
 
     @Id
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_usuario")
-    val usuario: Usuario,
+    @JoinColumn(name = "id_projeto", nullable = false)
+    @JsonIgnore
+    var projeto: Projeto? = null,
+
+    @Id
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario", nullable = false)
+    @JsonIgnore
+    var usuario: Usuario? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_cargo")
-    val cargo: Cargo,
+    var cargo: Cargo? = null,
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status")
+    @Column(name = "status", nullable = false)
     var status: StatusAlocacao = StatusAlocacao.ALOCADO,
 
     @Column(name = "horas_alocadas")
@@ -33,9 +37,16 @@ data class UsuarioProjeto(
     @Column(name = "horas_por_dia")
     var horasPorDia: Int = 0,
 
-    @Column(name = "data_alocacao")
-    var dataAlocacao: LocalDateTime? = LocalDateTime.now(),
+    @Column(name = "data_alocacao", nullable = false)
+    var dataAlocacao: LocalDate? = null,
 
     @Column(name = "data_saida")
     var dataSaida: LocalDate? = null
-)
+) {
+    @PrePersist
+    fun prePersist() {
+        if (dataAlocacao == null) {
+            dataAlocacao = LocalDate.now()
+        }
+    }
+}

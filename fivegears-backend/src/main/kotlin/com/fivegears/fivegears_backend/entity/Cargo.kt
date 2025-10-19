@@ -7,14 +7,12 @@ import jakarta.persistence.*
 @Table(name = "cargo")
 data class Cargo(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_cargo")
-    val id: Int? = null,
+    val idCargo: Int = 0,
 
-    @Column(nullable = false)
     var nome: String,
-
     var descricao: String? = null,
 
     @Enumerated(EnumType.STRING)
-    var senioridade: Senioridade = Senioridade.JUNIOR
+    val senioridade: Senioridade = Senioridade.JUNIOR
 )
+
