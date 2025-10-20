@@ -26,7 +26,7 @@ class GeminiServiceImplementacao(
     private val log = LoggerFactory.getLogger(GeminiServiceImplementacao::class.java)
     private val mapper = ObjectMapper()
 
-    // 🔒 Configura o RestTemplate com timeout de 10 segundos
+    // Configura o RestTemplate com timeout de 10 segundos
     private val restTemplate: RestTemplate by lazy {
         val factory = HttpComponentsClientHttpRequestFactory().apply {
             setConnectTimeout(10_000)
@@ -40,7 +40,7 @@ class GeminiServiceImplementacao(
         Sua função é interpretar comandos do gerente e gerar filtros JSON
         para buscar usuários do banco.
         
-        ⚠️ Regras:
+         Regras:
         - Responda **apenas** com JSON puro.
         - Não adicione comentários ou texto fora do JSON.
         - Se não souber responder, retorne {"erro": "Consulta não encontrada"}.
@@ -58,9 +58,9 @@ class GeminiServiceImplementacao(
         return comandosPermitidos.any { mensagemLower.contains(it) }
     }
 
-    // 🧠 Gera o filtro de busca com base na mensagem do gerente
+    //  Gera o filtro de busca com base na mensagem do gerente
     fun gerarFiltro(mensagem: String): FiltroAlocacao {
-        log.info("🧩 Solicitando filtro ao Gemini para comando: \"{}\"", mensagem)
+        log.info(" Solicitando filtro ao Gemini para comando: \"{}\"", mensagem)
 
         if (!validarMensagem(mensagem)) {
             log.warn("🚫 Comando inválido: '{}'", mensagem)
@@ -89,7 +89,7 @@ class GeminiServiceImplementacao(
 
         return try {
             val response = restTemplate.exchange(url, HttpMethod.POST, entity, String::class.java)
-            log.info("✅ Gemini retornou status {}", response.statusCode.value())
+            log.info(" Gemini retornou status {}", response.statusCode.value())
 
 
             // Parsing robusto
@@ -98,20 +98,20 @@ class GeminiServiceImplementacao(
                 val partes = json["candidates"]?.get(0)?.path("content")?.path("parts")
                 partes?.get(0)?.path("text")?.asText() ?: "{}"
             } catch (e: Exception) {
-                log.error("⚠️ Erro ao processar resposta do Gemini: {}", e.message)
+                log.error(" Erro ao processar resposta do Gemini: {}", e.message)
                 "{}"
             }
 
             val filtro = mapper.readValue(texto, FiltroAlocacao::class.java)
-            log.info("🎯 Filtro gerado com sucesso: {}", mapper.writeValueAsString(filtro))
+            log.info(" Filtro gerado com sucesso: {}", mapper.writeValueAsString(filtro))
             filtro
         } catch (e: Exception) {
-            log.error("❌ Erro ao chamar Gemini API: {}", e.message)
+            log.error(" Erro ao chamar Gemini API: {}", e.message)
             FiltroAlocacao()
         }
     }
 
-    // 🔍 Filtra os usuários de acordo com o filtro gerado
+    //  Filtra os usuários de acordo com o filtro gerado
     fun buscarUsuarios(filtro: FiltroAlocacao): List<UsuarioAlocadoDTO> {
         log.info("🔎 Iniciando busca de usuários com filtro: {}", mapper.writeValueAsString(filtro))
         val usuarios = usuarioRepository.findAll()
@@ -163,11 +163,11 @@ class GeminiServiceImplementacao(
             )
         }
 
-        log.info("✅ {} usuários encontrados pelo filtro.", filtrados.size)
+        log.info(" {} usuários encontrados pelo filtro.", filtrados.size)
         return filtrados
     }
 
-    // 🌟 Conversão de nível de soft skill em "estrelas"
+    //  Conversão de nível de soft skill em "estrelas"
     private fun NivelSoftSkill.toEstrela(): Int = when (this) {
         NivelSoftSkill.HORRIVEL -> 0
         NivelSoftSkill.BAIXO -> 1

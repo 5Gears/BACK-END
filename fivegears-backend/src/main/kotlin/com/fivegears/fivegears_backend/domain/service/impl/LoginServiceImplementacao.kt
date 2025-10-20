@@ -40,20 +40,26 @@ class LoginServiceImplementacao(
         loginRepository.save(login)
     }
 
-    override fun login(email: String, senha: String): Usuario {
+    override fun login(email: String, senha: String?): Usuario {
+        if (senha.isNullOrBlank()) {
+            throw RuntimeException("A senha não pode estar vazia")
+        }
+
         val login = loginRepository.findByUsuarioEmail(email)
             ?: throw RuntimeException("Usuário não encontrado")
 
         val senhaHash = HashUtils.sha256(senha)
 
-        if (login.senha != senhaHash) throw RuntimeException("Senha incorreta")
+        if (login.senha != senhaHash) {
+            throw RuntimeException("Senha incorreta")
+        }
 
         val onlineStatus = statusUsuarioRepository.findById(1)
             .orElseThrow { RuntimeException("Status ONLINE não encontrado") }
         val offlineStatus = statusUsuarioRepository.findById(2)
             .orElseThrow { RuntimeException("Status OFFLINE não encontrado") }
 
-        // Finaliza sessão ativa, se existir, para determinados níveis
+        // Finaliza sessão ativa, se existir
         sessaoRepository.findByLoginIdAndFimSessaoIsNull(login.id!!)?.let {
             val nivel = login.usuario.nivelPermissao?.nome
             if (nivel == NivelPermissaoEnum.FUNCIONARIO || nivel == NivelPermissaoEnum.GERENTE) {
@@ -74,6 +80,7 @@ class LoginServiceImplementacao(
 
         return login.usuario
     }
+
 
     override fun logout(usuarioId: Int) {
         val sessaoAtiva = getSessaoAtiva(usuarioId)

@@ -3,6 +3,7 @@ package com.fivegears.fivegears_backend.controller
 import com.fivegears.fivegears_backend.domain.service.impl.interfaces.LoginService
 import com.fivegears.fivegears_backend.dto.LoginRequestDTO
 import com.fivegears.fivegears_backend.dto.LoginResponseDTO
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
@@ -16,29 +17,55 @@ class LoginController(
     fun primeiroAcesso(
         @PathVariable usuarioId: Int,
         @RequestBody dto: Map<String, String>
-    ): ResponseEntity<Void> {
-        val novaSenha = dto["senha"] ?: throw RuntimeException("Nova senha não informada")
-        loginService.primeiroAcesso(usuarioId, novaSenha)
-        return ResponseEntity.noContent().build()
+    ): ResponseEntity<Any> {
+        return try {
+            val novaSenha = dto["senha"] ?: return ResponseEntity
+                .badRequest()
+                .body(mapOf("erro" to "Nova senha não informada"))
+
+            loginService.primeiroAcesso(usuarioId, novaSenha)
+            ResponseEntity.ok(mapOf("mensagem" to "Senha alterada com sucesso!"))
+        } catch (e: RuntimeException) {
+            val status = when {
+                e.message?.contains("padrão já alterada") == true -> HttpStatus.CONFLICT
+                e.message?.contains("não pode conter") == true -> HttpStatus.BAD_REQUEST
+                else -> HttpStatus.BAD_REQUEST
+            }
+            ResponseEntity.status(status).body(mapOf("erro" to e.message))
+        }
     }
 
     @PostMapping
-    fun login(@RequestBody dto: LoginRequestDTO): ResponseEntity<LoginResponseDTO> {
-        val usuario = loginService.login(dto.email, dto.senha)
-        val sessao = usuario.id?.let { loginService.getSessaoAtiva(it) }
+    fun login(@RequestBody dto: LoginRequestDTO): ResponseEntity<Any> {
+        return try {
+            val usuario = loginService.login(dto.email, dto.senha)
+            val sessao = usuario.id?.let { loginService.getSessaoAtiva(it) }
 
-        return ResponseEntity.ok(
-            LoginResponseDTO(
-                usuarioId = usuario.id!!,
-                nome = usuario.nome,
-                token = sessao?.token ?: ""
+            ResponseEntity.ok(
+                LoginResponseDTO(
+                    usuarioId = usuario.id!!,
+                    nome = usuario.nome,
+                    token = sessao?.token ?: ""
+                )
             )
-        )
+        } catch (e: RuntimeException) {
+            val status = when {
+                e.message?.contains("não encontrado") == true -> HttpStatus.NOT_FOUND
+                e.message?.contains("incorreta") == true -> HttpStatus.UNAUTHORIZED
+                e.message?.contains("vazia") == true -> HttpStatus.BAD_REQUEST
+                else -> HttpStatus.BAD_REQUEST
+            }
+            ResponseEntity.status(status).body(mapOf("erro" to e.message))
+        }
     }
 
     @PostMapping("/logout/{usuarioId}")
-    fun logout(@PathVariable usuarioId: Int): ResponseEntity<Void> {
-        loginService.logout(usuarioId)
-        return ResponseEntity.noContent().build()
+    fun logout(@PathVariable usuarioId: Int): ResponseEntity<Any> {
+        return try {
+            loginService.logout(usuarioId)
+            ResponseEntity.ok(mapOf("mensagem" to "Logout realizado com sucesso"))
+        } catch (e: RuntimeException) {
+            ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("erro" to e.message))
+        }
     }
 }
