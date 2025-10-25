@@ -14,83 +14,70 @@ class EscoImportService(private val jdbc: JdbcTemplate) {
         val sheet = workbook.getSheetAt(0)
 
         val cargosMap = mutableMapOf<String, Int>()
-        val competenciasBatch = mutableListOf<Triple<Int, String, String>>()
+        val competenciasMap = mutableMapOf<String, Int>()
+        val relacoes = mutableListOf<Triple<Int, Int, String>>()
 
-        println("🔍 Iniciando leitura da planilha ESCO: ${sheet.sheetName}")
-        println("Total de linhas detectadas: ${sheet.lastRowNum}")
+        println("Lendo planilha: ${sheet.sheetName}")
+        println("Total de linhas: ${sheet.lastRowNum}")
 
-        var countPreview = 0
+        for (i in 1..sheet.lastRowNum) {
+            val linha = sheet.getRow(i) ?: continue
+            val texto = getCellValue(linha.getCell(0))?.trim() ?: continue
+            if (texto.isBlank()) continue
 
-        for (rowIndex in 1..sheet.lastRowNum) {
-            val row = sheet.getRow(rowIndex) ?: continue
-            val rawText = getCellValue(row.getCell(0))?.trim() ?: continue
-            if (rawText.isBlank()) continue
-
-            val linha = rawText.replace("\"", "").trim()
-
-            // Tipo de relação = último item depois da última vírgula
-            val tipoRaw = linha.substringAfterLast(",", "").trim()
-            val tipoRelacao = when (tipoRaw.lowercase()) {
-                "essential" -> "REQUERIDA"
-                "optional" -> "RECOMENDADA"
-                else -> "RECOMENDADA"
-            }
-
-            // Cargo = antes da primeira vírgula
-            val cargoNome = linha.substringBefore(",", "").trim()
-
-            // Competência = entre a primeira e a última vírgula
-            val competenciaNome = linha.substringAfter(",", "")
-                .substringBeforeLast(",", "")
-                .trim()
+            val tipoRaw = texto.substringAfterLast(",", "").trim().lowercase()
+            val tipoRelacao = if (tipoRaw == "essential") "REQUERIDA" else "RECOMENDADA"
+            val cargoNome = texto.substringBefore(",", "").trim()
+            val competenciaNome = texto.substringAfter(",", "").substringBeforeLast(",", "").trim()
 
             if (cargoNome.isBlank() || competenciaNome.isBlank()) continue
 
-            if (countPreview < 5) {
-                println("➡️ [$rowIndex] Cargo: '$cargoNome' | Competência: '$competenciaNome' | Tipo: '$tipoRelacao'")
-                countPreview++
-            }
-
             val idCargo = cargosMap.getOrPut(cargoNome) {
-                jdbc.query(
-                    "SELECT id_esco_cargo FROM esco_cargo WHERE nome_cargo = ?",
-                    arrayOf(cargoNome)
-                ) { rs, _ -> rs.getInt("id_esco_cargo") }.firstOrNull()
-                    ?: run {
-                        jdbc.update("INSERT INTO esco_cargo (nome_cargo) VALUES (?)", cargoNome)
-                        jdbc.query(
-                            "SELECT id_esco_cargo FROM esco_cargo WHERE nome_cargo = ?",
-                            arrayOf(cargoNome)
-                        ) { rs, _ -> rs.getInt("id_esco_cargo") }.first()
-                    }
+                jdbc.query("SELECT id_cargo FROM cargo WHERE nome = ?", arrayOf(cargoNome)) { rs, _ -> rs.getInt(1) }
+                    .firstOrNull() ?: run {
+                    jdbc.update(
+                        "INSERT INTO cargo (nome, fonte) VALUES (?, 'importado')",
+                        cargoNome
+                    )
+                    jdbc.query(
+                        "SELECT id_cargo FROM cargo WHERE nome = ?",
+                        arrayOf(cargoNome)
+                    ) { rs, _ -> rs.getInt(1) }.first()
+                }
             }
 
-            competenciasBatch.add(Triple(idCargo, competenciaNome, tipoRelacao))
+            val idCompetencia = competenciasMap.getOrPut(competenciaNome) {
+                jdbc.query("SELECT id_competencia FROM competencia WHERE nome = ?", arrayOf(competenciaNome)) { rs, _ -> rs.getInt(1) }
+                    .firstOrNull() ?: run {
+                    jdbc.update("INSERT INTO competencia (nome) VALUES (?)", competenciaNome)
+                    jdbc.query(
+                        "SELECT id_competencia FROM competencia WHERE nome = ?",
+                        arrayOf(competenciaNome)
+                    ) { rs, _ -> rs.getInt(1) }.first()
+                }
+            }
+
+            relacoes.add(Triple(idCargo, idCompetencia, tipoRelacao))
         }
 
         val sql = """
-            INSERT INTO esco_competencia (id_esco_cargo, nome_competencia, tipo_relacao)
+            INSERT INTO cargo_competencia (id_cargo, id_competencia, tipo_relacao)
             VALUES (?, ?, ?)
             ON DUPLICATE KEY UPDATE tipo_relacao = VALUES(tipo_relacao)
         """.trimIndent()
 
-        competenciasBatch.chunked(500).forEach { batch ->
+        relacoes.chunked(500).forEach { batch ->
             jdbc.batchUpdate(sql, batch.map { arrayOf(it.first, it.second, it.third) })
         }
 
+        println("Importação concluída: ${cargosMap.size} cargos, ${competenciasMap.size} competências, ${relacoes.size} relações.")
         workbook.close()
-        println("✅ Importação concluída com sucesso!")
-        println("Cargos inseridos: ${cargosMap.size}")
-        println("Relações processadas: ${competenciasBatch.size}")
     }
 
-    private fun getCellValue(cell: Cell?): String? {
-        if (cell == null) return null
-        return when (cell.cellType) {
-            CellType.STRING -> cell.stringCellValue
-            CellType.NUMERIC -> cell.numericCellValue.toString()
-            CellType.BOOLEAN -> cell.booleanCellValue.toString()
-            else -> cell.toString()
-        }
+    private fun getCellValue(cell: Cell?): String? = when (cell?.cellType) {
+        CellType.STRING -> cell.stringCellValue
+        CellType.NUMERIC -> cell.numericCellValue.toString()
+        CellType.BOOLEAN -> cell.booleanCellValue.toString()
+        else -> cell?.toString()
     }
 }

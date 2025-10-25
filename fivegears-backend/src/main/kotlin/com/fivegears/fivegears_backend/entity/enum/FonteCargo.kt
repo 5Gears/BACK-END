@@ -1,6 +1,6 @@
 package com.fivegears.fivegears_backend.entity.enum
 
-enum class OrigemCargo {
+enum class FonteCargo {
     INTERNO,
     ESCO
 }

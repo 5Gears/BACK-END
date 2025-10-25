@@ -21,21 +21,18 @@ class LoginServiceImplementacao(
     private val statusUsuarioRepository: StatusUsuarioRepository
 ) : LoginService {
 
-    override fun primeiroAcesso(usuarioId: Int, novaSenha: String) {
-        val login = loginRepository.findByUsuarioId(usuarioId)
-            ?: throw RuntimeException("Login não encontrado")
+    override fun primeiroAcesso(email: String, novaSenha: String) {
+        val login = loginRepository.findByUsuarioEmail(email)
+            ?: throw RuntimeException("Usuário não encontrado")
 
-        // Verifica se a senha ainda é a padrão (hash do próprio email)
         if (login.senha != HashUtils.sha256(login.usuario.email)) {
-            throw RuntimeException("Senha padrão já alterada ou usuário já acessou")
+            throw RuntimeException("Senha padrão já alterada ou usuário já acessou anteriormente")
         }
 
-        // Verifica se a nova senha contém o email
         if (novaSenha.contains(login.usuario.email, ignoreCase = true)) {
             throw RuntimeException("A nova senha não pode conter o e-mail do usuário")
         }
 
-        // Salva nova senha com hash
         login.senha = HashUtils.sha256(novaSenha)
         loginRepository.save(login)
     }

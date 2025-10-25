@@ -7,6 +7,5 @@ data class CargoDTO(
     val nome: String,
     val descricao: String? = null,
     val senioridade: Senioridade,
-    val origem: String? = null,
-    val idEscoCargo: Int? = null
+    val fonte: String? = "INTERNO"
 )

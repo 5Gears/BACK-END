@@ -13,22 +13,24 @@ class LoginController(
     private val loginService: LoginService
 ) {
 
-    @PostMapping("/primeiro-acesso/{usuarioId}")
-    fun primeiroAcesso(
-        @PathVariable usuarioId: Int,
-        @RequestBody dto: Map<String, String>
-    ): ResponseEntity<Any> {
+    @PostMapping("/primeiro-acesso")
+    fun primeiroAcesso(@RequestBody dto: Map<String, String>): ResponseEntity<Any> {
         return try {
+            val email = dto["email"] ?: return ResponseEntity
+                .badRequest()
+                .body(mapOf("erro" to "E-mail não informado"))
+
             val novaSenha = dto["senha"] ?: return ResponseEntity
                 .badRequest()
                 .body(mapOf("erro" to "Nova senha não informada"))
 
-            loginService.primeiroAcesso(usuarioId, novaSenha)
+            loginService.primeiroAcesso(email, novaSenha)
             ResponseEntity.ok(mapOf("mensagem" to "Senha alterada com sucesso!"))
         } catch (e: RuntimeException) {
             val status = when {
-                e.message?.contains("padrão já alterada") == true -> HttpStatus.CONFLICT
+                e.message?.contains("já alterada") == true -> HttpStatus.CONFLICT
                 e.message?.contains("não pode conter") == true -> HttpStatus.BAD_REQUEST
+                e.message?.contains("não encontrado") == true -> HttpStatus.NOT_FOUND
                 else -> HttpStatus.BAD_REQUEST
             }
             ResponseEntity.status(status).body(mapOf("erro" to e.message))

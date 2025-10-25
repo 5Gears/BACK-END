@@ -1,6 +1,6 @@
 package com.fivegears.fivegears_backend.entity
 
-import com.fivegears.fivegears_backend.entity.enum.OrigemCargo
+import com.fivegears.fivegears_backend.entity.enum.FonteCargo
 import com.fivegears.fivegears_backend.entity.enum.Senioridade
 import jakarta.persistence.*
 
@@ -9,10 +9,9 @@ import jakarta.persistence.*
 data class Cargo(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_cargo")
     val idCargo: Int? = null,
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     val nome: String,
 
     val descricao: String? = null,
@@ -21,11 +20,7 @@ data class Cargo(
     val senioridade: Senioridade = Senioridade.JUNIOR,
 
     @Enumerated(EnumType.STRING)
-    val origem: OrigemCargo = OrigemCargo.INTERNO,
-
-    @ManyToOne
-    @JoinColumn(name = "id_esco_cargo")
-    val escoCargo: EscoCargo? = null,
+    val fonte: FonteCargo = FonteCargo.INTERNO,
 
     // Relações
     @OneToMany(mappedBy = "cargo", cascade = [CascadeType.ALL], orphanRemoval = true)
