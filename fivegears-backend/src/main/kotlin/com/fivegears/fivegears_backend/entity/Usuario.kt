@@ -23,11 +23,11 @@ data class Usuario(
 
     var area: String? = null,
 
-    @Column(name = "carga_horaria")
-    var cargaHoraria: Int = 0,
+    @Column(name = "carga_horaria", nullable = false)
+    var cargaHoraria: Int = 40,
 
     @Column(name = "valor_hora")
-    var valorHora: Double = 0.0,
+    var valorHora: Double? = 0.0,
 
     @ManyToOne
     @JoinColumn(name = "id_empresa")

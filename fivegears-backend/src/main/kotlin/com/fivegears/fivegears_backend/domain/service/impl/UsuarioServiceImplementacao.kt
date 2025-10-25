@@ -3,10 +3,15 @@ package com.fivegears.fivegears_backend.domain.service.impl
 import com.fivegears.fivegears_backend.domain.repository.*
 import com.fivegears.fivegears_backend.domain.service.impl.interfaces.UsuarioService
 import com.fivegears.fivegears_backend.dto.UsuarioDTO
+import com.fivegears.fivegears_backend.entity.Empresa
+import com.fivegears.fivegears_backend.entity.UsuarioCargo
+import com.fivegears.fivegears_backend.entity.UsuarioCargoId
+import com.fivegears.fivegears_backend.entity.enum.SenioridadeCargo
 import com.fivegears.fivegears_backend.mapper.UsuarioMapper
 import com.fivegears.fivegears_backend.util.HashUtils
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
+import java.time.LocalDate
 
 @Service
 class UsuarioServiceImplementacao(
@@ -17,45 +22,59 @@ class UsuarioServiceImplementacao(
     private val nivelPermissaoRepository: NivelPermissaoRepository
 ) : UsuarioService {
 
-    override fun listarTodos(): ResponseEntity<List<UsuarioDTO>> =
-        ResponseEntity.ok(usuarioRepository.findAll().map { UsuarioMapper.toDTO(it) })
 
-    override fun buscarPorId(id: Int): ResponseEntity<UsuarioDTO> =
-        usuarioRepository.findById(id)
-            .map { ResponseEntity.ok(UsuarioMapper.toDTO(it)) }
-            .orElse(ResponseEntity.notFound().build())
+    override fun listarTodos(): ResponseEntity<List<UsuarioDTO>> {
+        val usuarios = usuarioRepository.findAll()
+        val dtos = usuarios.map { usuario ->
+            val usuarioCargo = usuarioCargoRepository.findByUsuario(usuario).firstOrNull()
+            UsuarioMapper.toDTO(usuario, usuarioCargo)
+        }
+        return ResponseEntity.ok(dtos)
+    }
+
+
+    override fun buscarPorId(id: Int): ResponseEntity<UsuarioDTO> {
+        val usuario = usuarioRepository.findById(id)
+            .orElseThrow { RuntimeException("Usuário não encontrado") }
+        val usuarioCargo = usuarioCargoRepository.findByUsuario(usuario).firstOrNull()
+        return ResponseEntity.ok(UsuarioMapper.toDTO(usuario, usuarioCargo))
+    }
+
 
     override fun criar(dto: UsuarioDTO): ResponseEntity<UsuarioDTO> {
-        // Cria o usuário
+        // Cria usuário base
         val usuario = UsuarioMapper.toEntity(dto)
         val savedUsuario = usuarioRepository.save(usuario)
 
-        // Cria o login com senha padrão (hash do email)
+        // Cria login com senha padrão (hash do e-mail)
         val login = com.fivegears.fivegears_backend.entity.Login(
             usuario = savedUsuario,
             senha = HashUtils.sha256(savedUsuario.email)
         )
         loginRepository.save(login)
 
-        // Associa cargo se fornecido no DTO
+        // Associa cargo + senioridade
         dto.idCargo?.let { cargoId ->
             val cargo = cargoRepository.findById(cargoId)
                 .orElseThrow { RuntimeException("Cargo não encontrado: $cargoId") }
 
-            val usuarioCargo = com.fivegears.fivegears_backend.entity.UsuarioCargo(
-                id = com.fivegears.fivegears_backend.entity.UsuarioCargoId(
+            val usuarioCargo = UsuarioCargo(
+                id = UsuarioCargoId(
                     idUsuario = savedUsuario.id,
                     idCargo = cargo.idCargo
                 ),
                 usuario = savedUsuario,
-                cargo = cargo
+                cargo = cargo,
+                senioridade = dto.senioridade?.let { SenioridadeCargo.valueOf(it) } ?: SenioridadeCargo.JUNIOR,
+                dataInicio = LocalDate.now() // começa a contar experiência agora
             )
             usuarioCargoRepository.save(usuarioCargo)
         }
 
-        // Retorna DTO com idCargo incluído
-        return ResponseEntity.ok(UsuarioMapper.toDTO(savedUsuario, dto.idCargo))
+        val usuarioCargo = usuarioCargoRepository.findByUsuario(savedUsuario).firstOrNull()
+        return ResponseEntity.ok(UsuarioMapper.toDTO(savedUsuario, usuarioCargo))
     }
+
 
     override fun atualizar(id: Int, dto: UsuarioDTO): ResponseEntity<UsuarioDTO> {
         val existente = usuarioRepository.findById(id)
@@ -66,9 +85,9 @@ class UsuarioServiceImplementacao(
                 cpf = dto.cpf
                 telefone = dto.telefone
                 area = dto.area
-                cargaHoraria = dto.cargaHoraria
+                cargaHoraria = dto.cargaHoraria!!
                 valorHora = dto.valorHora
-                empresa = dto.idEmpresa?.let { com.fivegears.fivegears_backend.entity.Empresa(it) }
+                empresa = dto.idEmpresa?.let { Empresa(it) }
 
                 nivelPermissao = dto.idNivel?.let { idNivel ->
                     nivelPermissaoRepository.findById(idNivel)
@@ -82,20 +101,21 @@ class UsuarioServiceImplementacao(
                 val cargo = cargoRepository.findById(cargoId)
                     .orElseThrow { RuntimeException("Cargo não encontrado: $cargoId") }
 
-                val usuarioCargoId = com.fivegears.fivegears_backend.entity.UsuarioCargoId(
-                    idUsuario = updatedUsuario.id,
-                    idCargo = cargo.idCargo
+                val usuarioCargo = UsuarioCargo(
+                    id = UsuarioCargoId(
+                        idUsuario = updatedUsuario.id,
+                        idCargo = cargo.idCargo
+                    ),
+                    usuario = updatedUsuario,
+                    cargo = cargo,
+                    senioridade = dto.senioridade?.let { SenioridadeCargo.valueOf(it) } ?: SenioridadeCargo.JUNIOR
                 )
 
-                val usuarioCargo = com.fivegears.fivegears_backend.entity.UsuarioCargo(
-                    id = usuarioCargoId,
-                    usuario = updatedUsuario,
-                    cargo = cargo
-                )
                 usuarioCargoRepository.save(usuarioCargo)
             }
 
-            ResponseEntity.ok(UsuarioMapper.toDTO(updatedUsuario, dto.idCargo))
+            val usuarioCargo = usuarioCargoRepository.findByUsuario(updatedUsuario).firstOrNull()
+            ResponseEntity.ok(UsuarioMapper.toDTO(updatedUsuario, usuarioCargo))
         } else {
             ResponseEntity.notFound().build()
         }

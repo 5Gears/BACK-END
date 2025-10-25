@@ -51,7 +51,6 @@ class CargoServiceImplementacao(
         val atualizado = existente.copy(
             nome = dto.nome,
             descricao = dto.descricao,
-            senioridade = dto.senioridade,
             fonte = dto.fonte?.let { FonteCargo.valueOf(it) } ?: FonteCargo.INTERNO
         )
 

@@ -1,5 +1,7 @@
 package com.fivegears.fivegears_backend.dto
 
+import java.math.BigDecimal
+
 data class UsuarioDTO(
     val idUsuario: Int? = null,
     val nome: String,
@@ -7,9 +9,12 @@ data class UsuarioDTO(
     val cpf: String? = null,
     val telefone: String? = null,
     val area: String? = null,
-    val idCargo: Int? = null,
-    val cargaHoraria: Int = 0,
-    val valorHora: Double = 0.0,
+    val cargaHoraria: Int? = null,
+    val valorHora: Double? = null,
     val idEmpresa: Int? = null,
     val idNivel: Int? = null,
+    val idCargo: Int? = null,
+    val cargoNome: String? = null,
+    val senioridade: String? = null,
+    val experienciaAnos: Int? = null
 )

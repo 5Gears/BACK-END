@@ -19,6 +19,9 @@ class ProjetoServiceImplementacao(
     private val cargoRepository: CargoRepository
 ) : ProjetoService {
 
+    override fun buscarPorNome(nome: String): Projeto =
+        projetoRepository.findByNomeIgnoreCase(nome)
+            ?: throw RuntimeException("Projeto com nome '$nome' não encontrado")
     override fun listarTodos(): List<Projeto> =
         projetoRepository.findAll()
 
@@ -26,8 +29,14 @@ class ProjetoServiceImplementacao(
         projetoRepository.findById(id)
             .orElseThrow { RuntimeException("Projeto com ID $id não encontrado") }
 
-    override fun criar(projeto: Projeto): Projeto =
-        projetoRepository.save(projeto)
+    override fun criar(projeto: Projeto): Projeto {
+        val existente = projetoRepository.findByNomeIgnoreCase(projeto.nome)
+        if (existente != null) {
+            throw RuntimeException("Já existe um projeto cadastrado com o nome '${projeto.nome}'.")
+        }
+
+        return projetoRepository.save(projeto)
+    }
 
     override fun atualizar(id: Int, projetoAtualizado: Projeto): Projeto {
         val projetoExistente = buscarPorId(id)

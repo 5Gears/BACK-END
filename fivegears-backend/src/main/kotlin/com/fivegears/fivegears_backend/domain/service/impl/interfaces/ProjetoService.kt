@@ -5,6 +5,7 @@ import com.fivegears.fivegears_backend.entity.UsuarioProjeto
 
 interface ProjetoService {
 
+    fun buscarPorNome(nome: String): Projeto
     fun listarTodos(): List<Projeto>
 
     fun buscarPorId(id: Int): Projeto

@@ -1,7 +1,6 @@
 package com.fivegears.fivegears_backend.entity
 
 import com.fivegears.fivegears_backend.entity.enum.FonteCargo
-import com.fivegears.fivegears_backend.entity.enum.Senioridade
 import jakarta.persistence.*
 
 @Entity
@@ -15,9 +14,6 @@ data class Cargo(
     val nome: String,
 
     val descricao: String? = null,
-
-    @Enumerated(EnumType.STRING)
-    val senioridade: Senioridade = Senioridade.JUNIOR,
 
     @Enumerated(EnumType.STRING)
     val fonte: FonteCargo = FonteCargo.INTERNO,

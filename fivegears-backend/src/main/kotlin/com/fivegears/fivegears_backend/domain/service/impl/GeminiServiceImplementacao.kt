@@ -7,6 +7,7 @@ import com.fivegears.fivegears_backend.entity.enum.NivelSoftSkill
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fivegears.fivegears_backend.domain.repository.*
+import com.fivegears.fivegears_backend.entity.enum.SenioridadeCargo
 import org.slf4j.LoggerFactory
 import org.springframework.http.*
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory
@@ -26,7 +27,7 @@ class GeminiServiceImplementacao(
     private val log = LoggerFactory.getLogger(GeminiServiceImplementacao::class.java)
     private val mapper = ObjectMapper()
 
-    // Configura o RestTemplate com timeout de 10 segundos
+    // Configuração do RestTemplate com timeout de 10s
     private val restTemplate: RestTemplate by lazy {
         val factory = HttpComponentsClientHttpRequestFactory().apply {
             setConnectTimeout(10_000)
@@ -35,22 +36,41 @@ class GeminiServiceImplementacao(
         RestTemplate(factory)
     }
 
+    // Prompt aprimorado mantendo o fluxo original
     private val promptBase = """
-        Você é um assistente do sistema FiveGears.
-        Sua função é interpretar comandos do gerente e gerar filtros JSON
-        para buscar usuários do banco.
-        
+        Você é o SunnyBOT, assistente de alocação de profissionais do sistema FiveGears.
+
+        Sua função é interpretar mensagens de gerentes de projeto e gerar filtros objetivos
+        para buscar usuários no banco de dados.
+
          Regras:
-        - Responda **apenas** com JSON puro.
-        - Não adicione comentários ou texto fora do JSON.
-        - Se não souber responder, retorne {"erro": "Consulta não encontrada"}.
+        - Responda apenas com JSON puro, sem explicações nem texto adicional.
+        - Estrutura do JSON:
+          {
+            "competencias": ["Kotlin", "Segurança da Informação"],
+            "cargoMinimo": "JUNIOR",
+            "horasDisponiveisMin": 20,
+            "valorHoraMax": 120.0,
+            "softSkills": ["Trabalho em equipe", "Proatividade"]
+          }
+
+         Instruções:
+        - Extraia palavras-chave técnicas (competencias) da mensagem.
+        - Inferir "cargoMinimo" conforme o texto (ex: estagiário → ESTAGIARIO, júnior → JUNIOR, pleno → PLENO, sênior → SENIOR).
+        - Se mencionar prazo curto ou dedicação parcial, ajuste "horasDisponiveisMin".
+        - Se mencionar orçamento, ajuste "valorHoraMax".
+        - "softSkills" deve conter atitudes ou comportamentos desejados.
+        - **Não cite nomes de pessoas nem projetos**.
+        - Se não entender a solicitação, retorne {"erro": "Consulta não encontrada"}.
     """.trimIndent()
 
+    // Comandos válidos reconhecidos
     private val comandosPermitidos = listOf(
-        "listar competencias do usuario",
-        "listar softskills do usuario",
-        "montar equipe com",
-        "filtrar usuarios com"
+        "montar equipe",
+        "alocar profissionais",
+        "filtrar usuarios",
+        "listar competencias",
+        "listar softskills"
     )
 
     private fun validarMensagem(mensagem: String): Boolean {
@@ -58,28 +78,19 @@ class GeminiServiceImplementacao(
         return comandosPermitidos.any { mensagemLower.contains(it) }
     }
 
-    //  Gera o filtro de busca com base na mensagem do gerente
+    // Gera o filtro de busca baseado na mensagem
     fun gerarFiltro(mensagem: String): FiltroAlocacao {
         log.info(" Solicitando filtro ao Gemini para comando: \"{}\"", mensagem)
 
         if (!validarMensagem(mensagem)) {
-            log.warn("🚫 Comando inválido: '{}'", mensagem)
+            log.warn(" Comando inválido: '{}'", mensagem)
             return FiltroAlocacao()
         }
 
         val promptFinal = """
             $promptBase
-            
+
             Comando: "$mensagem"
-            
-            Retorne um JSON no formato:
-            {
-              "competencias": ["Kotlin", "SQL"],
-              "cargoMinimo": "PLENO",
-              "horasDisponiveisMin": 20,
-              "valorHoraMax": 150.0,
-              "softSkills": ["Comunicação", "Trabalho em equipe"]
-            }
         """.trimIndent()
 
         val body = """{ "contents": [{"parts": [{"text": "$promptFinal"}]}] }"""
@@ -89,10 +100,8 @@ class GeminiServiceImplementacao(
 
         return try {
             val response = restTemplate.exchange(url, HttpMethod.POST, entity, String::class.java)
-            log.info(" Gemini retornou status {}", response.statusCode.value())
+            log.info("Gemini retornou status {}", response.statusCode.value())
 
-
-            // Parsing robusto
             val texto = try {
                 val json: JsonNode = mapper.readTree(response.body)
                 val partes = json["candidates"]?.get(0)?.path("content")?.path("parts")
@@ -111,55 +120,70 @@ class GeminiServiceImplementacao(
         }
     }
 
-    //  Filtra os usuários de acordo com o filtro gerado
     fun buscarUsuarios(filtro: FiltroAlocacao): List<UsuarioAlocadoDTO> {
-        log.info("🔎 Iniciando busca de usuários com filtro: {}", mapper.writeValueAsString(filtro))
+        log.info(" Iniciando busca de usuários com filtro: {}", mapper.writeValueAsString(filtro))
         val usuarios = usuarioRepository.findAll()
+
+        //  Função auxiliar para interpretar textos de senioridade
+        fun normalizarSenioridade(input: String?): SenioridadeCargo {
+            if (input == null) return SenioridadeCargo.ESTAGIARIO
+            val texto = input.trim().lowercase()
+            return when {
+                texto.contains("est") || texto.contains("trainee") -> SenioridadeCargo.ESTAGIARIO
+                texto.contains("jun") -> SenioridadeCargo.JUNIOR
+                texto.contains("ple") || texto.contains("mid") -> SenioridadeCargo.PLENO
+                texto.contains("sen") -> SenioridadeCargo.SENIOR
+                else -> SenioridadeCargo.JUNIOR // fallback padrão
+            }
+        }
+
+        //  Nível mínimo do filtro (já enum, mas tratamos erro caso venha texto errado)
+        val nivelFiltro = normalizarSenioridade(filtro.cargoMinimo.name)
 
         val filtrados = usuarios.filter { usuario ->
             val cargosUsuario = usuarioCargoRepository.findByUsuario(usuario)
-            val atendeCargo = cargosUsuario.any { it.cargo.senioridade >= filtro.cargoMinimo }
+
+            val atendeCargo = cargosUsuario.any { it.senioridade.ordinal >= nivelFiltro.ordinal }
             if (!atendeCargo) return@filter false
 
             val competenciasUsuario = usuarioCompetenciaRepository.findByUsuario(usuario)
-                .map { it.competencia.nome }
-            if (!filtro.competencias.all { competenciasUsuario.contains(it) }) return@filter false
+                .map { it.competencia.nome.trim().lowercase() }
+                .toSet()
+            if (!filtro.competencias.all { it.trim().lowercase() in competenciasUsuario }) return@filter false
 
             val softSkillsUsuario = usuarioSoftSkillRepository.findByUsuario(usuario)
-                .associate { it.softSkill.nome to it.nivel.toEstrela() }
-            if (!filtro.softSkills.all { softSkillsUsuario.containsKey(it) }) return@filter false
+                .associate { it.softSkill.nome.trim().lowercase() to it.nivel.toEstrela() }
+            if (!filtro.softSkills.all { it.trim().lowercase() in softSkillsUsuario.keys }) return@filter false
 
-            if (usuario.valorHora > filtro.valorHoraMax) return@filter false
+            usuario.valorHora?.let { if (it > filtro.valorHoraMax) return@filter false }
 
             val horasAtuais = usuarioProjetoRepository.findByUsuario(usuario)
                 .filter { it.status.name == "ALOCADO" }
                 .sumOf { it.horasPorDia }
-            if ((40 - horasAtuais) < filtro.horasDisponiveisMin) return@filter false
 
-            true
+            val horasDisponiveis = (40 - horasAtuais).coerceAtLeast(0)
+            horasDisponiveis >= filtro.horasDisponiveisMin
         }.map { usuario ->
-            val cargos = usuarioCargoRepository.findByUsuario(usuario)
-            val softSkills = usuarioSoftSkillRepository.findByUsuario(usuario)
-                .associate { it.softSkill.nome to it.nivel.toEstrela() }
-            val competencias = usuarioCompetenciaRepository.findByUsuario(usuario)
-                .map { it.competencia.nome }
-            val projetos = usuarioProjetoRepository.findByUsuario(usuario)
+            val cargoAtual = usuarioCargoRepository.findByUsuario(usuario).firstOrNull()
+            val projetosAtivos = usuarioProjetoRepository.findByUsuario(usuario)
                 .filter { it.status.name == "ALOCADO" }
-                .map { it.projeto!!.nome }
+                .mapNotNull { it.projeto?.nome }
 
             UsuarioAlocadoDTO(
                 id = usuario.id,
                 nome = usuario.nome,
                 email = usuario.email,
-                cargo = cargos.firstOrNull()?.cargo?.nome,
-                senioridade = cargos.firstOrNull()?.cargo?.senioridade?.name,
-                valorHora = usuario.valorHora,
-                horasDisponiveis = 40 - usuarioProjetoRepository.findByUsuario(usuario)
+                cargo = cargoAtual?.cargo?.nome,
+                senioridade = cargoAtual?.senioridade?.name,
+                valorHora = usuario.valorHora ?: 0.0,
+                horasDisponiveis = (40 - usuarioProjetoRepository.findByUsuario(usuario)
                     .filter { it.status.name == "ALOCADO" }
-                    .sumOf { it.horasPorDia },
-                projetosAtivos = projetos,
-                softSkills = softSkills,
-                competencias = competencias
+                    .sumOf { it.horasPorDia }).coerceAtLeast(0),
+                projetosAtivos = projetosAtivos,
+                softSkills = usuarioSoftSkillRepository.findByUsuario(usuario)
+                    .associate { it.softSkill.nome to it.nivel.toEstrela() },
+                competencias = usuarioCompetenciaRepository.findByUsuario(usuario)
+                    .map { it.competencia.nome }
             )
         }
 
@@ -167,7 +191,8 @@ class GeminiServiceImplementacao(
         return filtrados
     }
 
-    //  Conversão de nível de soft skill em "estrelas"
+
+    //  Conversão de nível de soft skill em “estrelas”
     private fun NivelSoftSkill.toEstrela(): Int = when (this) {
         NivelSoftSkill.HORRIVEL -> 0
         NivelSoftSkill.BAIXO -> 1
