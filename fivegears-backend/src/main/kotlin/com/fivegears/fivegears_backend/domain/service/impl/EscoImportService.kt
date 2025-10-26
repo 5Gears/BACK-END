@@ -36,7 +36,7 @@ class EscoImportService(private val jdbc: JdbcTemplate) {
                 jdbc.query("SELECT id_cargo FROM cargo WHERE nome = ?", arrayOf(cargoNome)) { rs, _ -> rs.getInt(1) }
                     .firstOrNull() ?: run {
                     jdbc.update(
-                        "INSERT INTO cargo (nome, fonte) VALUES (?, 'importado')",
+                        "INSERT INTO cargo (nome, fonte) VALUES (?, 'IMPORTADO')",
                         cargoNome
                     )
                     jdbc.query(
