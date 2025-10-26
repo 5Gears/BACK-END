@@ -1,9 +1,6 @@
 package com.fivegears.fivegears_backend.domain.service.impl
 
-import com.fivegears.fivegears_backend.domain.repository.CargoRepository
-import com.fivegears.fivegears_backend.domain.repository.ProjetoRepository
-import com.fivegears.fivegears_backend.domain.repository.UsuarioProjetoRepository
-import com.fivegears.fivegears_backend.domain.repository.UsuarioRepository
+import com.fivegears.fivegears_backend.domain.repository.*
 import com.fivegears.fivegears_backend.domain.service.impl.interfaces.ProjetoService
 import com.fivegears.fivegears_backend.entity.*
 import com.fivegears.fivegears_backend.entity.enum.StatusProjeto
@@ -22,6 +19,7 @@ class ProjetoServiceImplementacao(
     override fun buscarPorNome(nome: String): Projeto =
         projetoRepository.findByNomeIgnoreCase(nome)
             ?: throw RuntimeException("Projeto com nome '$nome' não encontrado")
+
     override fun listarTodos(): List<Projeto> =
         projetoRepository.findAll()
 
@@ -35,11 +33,15 @@ class ProjetoServiceImplementacao(
             throw RuntimeException("Já existe um projeto cadastrado com o nome '${projeto.nome}'.")
         }
 
+        // Define o status inicial do projeto
+        projeto.status = StatusProjeto.EM_PLANEJAMENTO
+
         return projetoRepository.save(projeto)
     }
 
     override fun atualizar(id: Int, projetoAtualizado: Projeto): Projeto {
         val projetoExistente = buscarPorId(id)
+
         projetoExistente.apply {
             nome = projetoAtualizado.nome
             descricao = projetoAtualizado.descricao
@@ -51,6 +53,7 @@ class ProjetoServiceImplementacao(
             cliente = projetoAtualizado.cliente
             responsavel = projetoAtualizado.responsavel
         }
+
         return projetoRepository.save(projetoExistente)
     }
 
@@ -65,6 +68,11 @@ class ProjetoServiceImplementacao(
     override fun adicionarUsuarioAoProjeto(idProjeto: Int, idUsuario: Int, idCargo: Int): UsuarioProjeto {
         val projeto = projetoRepository.findById(idProjeto)
             .orElseThrow { RuntimeException("Projeto não encontrado") }
+
+        // Impede alocação em projetos fora do desenvolvimento
+        if (projeto.status != StatusProjeto.EM_DESENVOLVIMENTO) {
+            throw RuntimeException("Usuários só podem ser alocados em projetos em desenvolvimento.")
+        }
 
         val usuario = usuarioRepository.findById(idUsuario)
             .orElseThrow { RuntimeException("Usuário não encontrado") }
@@ -91,20 +99,37 @@ class ProjetoServiceImplementacao(
 
     override fun aceitarProjeto(id: Int): Projeto {
         val projeto = buscarPorId(id)
+
         if (projeto.status != StatusProjeto.EM_PLANEJAMENTO) {
             throw RuntimeException("Projeto não pode ser aceito pois não está em planejamento.")
         }
+
         projeto.status = StatusProjeto.EM_DESENVOLVIMENTO
         return projetoRepository.save(projeto)
     }
 
     override fun negarProjeto(id: Int): Projeto {
         val projeto = buscarPorId(id)
+
         if (projeto.status != StatusProjeto.EM_PLANEJAMENTO) {
             throw RuntimeException("Projeto não pode ser negado pois não está em planejamento.")
         }
+
         projeto.status = StatusProjeto.NEGADO
         return projetoRepository.save(projeto)
     }
 
+
+    override fun finalizarProjeto(id: Int, concluido: Boolean): Projeto {
+        val projeto = buscarPorId(id)
+
+        if (projeto.status != StatusProjeto.EM_DESENVOLVIMENTO) {
+            throw RuntimeException("Somente projetos em desenvolvimento podem ser finalizados.")
+        }
+
+        projeto.status = if (concluido) StatusProjeto.CONCLUIDO else StatusProjeto.CANCELADO
+        projeto.dataFim = java.time.LocalDate.now()
+
+        return projetoRepository.save(projeto)
+    }
 }

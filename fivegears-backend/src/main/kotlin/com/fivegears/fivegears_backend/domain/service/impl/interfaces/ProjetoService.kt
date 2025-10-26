@@ -25,4 +25,6 @@ interface ProjetoService {
     fun aceitarProjeto(id: Int): Projeto
 
     fun negarProjeto(id: Int): Projeto
+
+    fun finalizarProjeto(id: Int, concluido: Boolean): Projeto
 }

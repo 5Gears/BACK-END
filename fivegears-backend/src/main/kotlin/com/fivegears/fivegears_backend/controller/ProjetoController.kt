@@ -86,4 +86,13 @@ class ProjetoController(
         val projeto = projetoService.negarProjeto(id)
         return ResponseEntity.ok(projeto)
     }
+
+    @PutMapping("/{id}/finalizar")
+    fun finalizarProjeto(
+        @PathVariable id: Int,
+        @RequestParam concluido: Boolean
+    ): ResponseEntity<Projeto> {
+        val projeto = projetoService.finalizarProjeto(id, concluido)
+        return ResponseEntity.ok(projeto)
+    }
 }

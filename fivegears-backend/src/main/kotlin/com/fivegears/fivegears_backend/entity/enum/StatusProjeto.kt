@@ -4,5 +4,6 @@ enum class StatusProjeto {
     EM_PLANEJAMENTO,
     EM_DESENVOLVIMENTO,
     NEGADO,
-    CONCLUIDO
+    CONCLUIDO,
+    CANCELADO
 }
