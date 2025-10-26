@@ -88,6 +88,7 @@ class ProjetoController(
     }
 
     @PutMapping("/{id}/finalizar")
+    @Operation(summary = "Finalizar um projeto (muda status para CONCLUIDO)")
     fun finalizarProjeto(
         @PathVariable id: Int,
         @RequestParam concluido: Boolean
