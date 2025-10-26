@@ -1,5 +1,6 @@
 package com.fivegears.fivegears_backend.controller
 
+import com.fivegears.fivegears_backend.domain.repository.LoginRepository
 import com.fivegears.fivegears_backend.domain.service.impl.interfaces.LoginService
 import com.fivegears.fivegears_backend.dto.LoginRequestDTO
 import com.fivegears.fivegears_backend.dto.LoginResponseDTO
@@ -10,7 +11,8 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/api/login")
 class LoginController(
-    private val loginService: LoginService
+    private val loginService: LoginService,
+    private val loginRepository: LoginRepository
 ) {
 
     @PostMapping("/primeiro-acesso")
@@ -43,18 +45,25 @@ class LoginController(
             val usuario = loginService.login(dto.email, dto.senha)
             val sessao = usuario.id?.let { loginService.getSessaoAtiva(it) }
 
+            // Busca o login do usuário para verificar o primeiroAcesso
+            val login = loginRepository.findByUsuarioEmail(dto.email)
+                ?: throw RuntimeException("Login não encontrado para o usuário informado.")
+
             ResponseEntity.ok(
                 LoginResponseDTO(
-                    usuarioId = usuario.id!!,
+                    id = usuario.id!!,
                     nome = usuario.nome,
-                    token = sessao?.token ?: ""
+                    email = usuario.email,
+                    token = sessao?.token ?: "",
+                    primeiroAcesso = login.primeiroAcesso
                 )
             )
         } catch (e: RuntimeException) {
             val status = when {
-                e.message?.contains("não encontrado") == true -> HttpStatus.NOT_FOUND
-                e.message?.contains("incorreta") == true -> HttpStatus.UNAUTHORIZED
-                e.message?.contains("vazia") == true -> HttpStatus.BAD_REQUEST
+                e.message?.contains("não encontrado", ignoreCase = true) == true -> HttpStatus.NOT_FOUND
+                e.message?.contains("incorreta", ignoreCase = true) == true -> HttpStatus.UNAUTHORIZED
+                e.message?.contains("vazia", ignoreCase = true) == true -> HttpStatus.BAD_REQUEST
+                e.message?.contains("primeiro acesso", ignoreCase = true) == true -> HttpStatus.UNAUTHORIZED
                 else -> HttpStatus.BAD_REQUEST
             }
             ResponseEntity.status(status).body(mapOf("erro" to e.message))
