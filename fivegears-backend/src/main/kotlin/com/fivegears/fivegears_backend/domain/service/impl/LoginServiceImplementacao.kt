@@ -33,7 +33,10 @@ class LoginServiceImplementacao(
             throw RuntimeException("A nova senha não pode conter o e-mail do usuário.")
         }
 
+        // Criptografa e salva a nova senha
         login.senha = HashUtils.sha256(novaSenha)
+
+        // Marca como concluído o primeiro acesso
         login.primeiroAcesso = false
         loginRepository.save(login)
     }
@@ -46,8 +49,13 @@ class LoginServiceImplementacao(
         val login = loginRepository.findByUsuarioEmail(email)
             ?: throw RuntimeException("Usuário não encontrado")
 
-        val senhaHash = HashUtils.sha256(senha)
+        // Verifica se ainda está no primeiro acesso
+        if (login.primeiroAcesso) {
+            throw RuntimeException("Usuário precisa realizar o primeiro acesso")
+        }
 
+        // Verifica a senha (hash local)
+        val senhaHash = HashUtils.sha256(senha)
         if (login.senha != senhaHash) {
             throw RuntimeException("Senha incorreta")
         }
@@ -57,7 +65,7 @@ class LoginServiceImplementacao(
         val offlineStatus = statusUsuarioRepository.findById(2)
             .orElseThrow { RuntimeException("Status OFFLINE não encontrado") }
 
-        // Finaliza sessão ativa, se existir
+        // Finaliza sessão anterior, se houver
         sessaoRepository.findByLoginIdAndFimSessaoIsNull(login.id!!)?.let {
             val nivel = login.usuario.nivelPermissao?.nome
             if (nivel == NivelPermissaoEnum.FUNCIONARIO || nivel == NivelPermissaoEnum.GERENTE) {
