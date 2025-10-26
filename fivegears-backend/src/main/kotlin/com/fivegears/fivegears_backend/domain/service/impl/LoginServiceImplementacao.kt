@@ -25,15 +25,16 @@ class LoginServiceImplementacao(
         val login = loginRepository.findByUsuarioEmail(email)
             ?: throw RuntimeException("Usuário não encontrado")
 
-        if (login.senha != HashUtils.sha256(login.usuario.email)) {
-            throw RuntimeException("Senha padrão já alterada ou usuário já acessou anteriormente")
+        if (!login.primeiroAcesso) {
+            throw RuntimeException("Usuário já realizou o primeiro acesso anteriormente.")
         }
 
         if (novaSenha.contains(login.usuario.email, ignoreCase = true)) {
-            throw RuntimeException("A nova senha não pode conter o e-mail do usuário")
+            throw RuntimeException("A nova senha não pode conter o e-mail do usuário.")
         }
 
         login.senha = HashUtils.sha256(novaSenha)
+        login.primeiroAcesso = false
         loginRepository.save(login)
     }
 
@@ -77,7 +78,6 @@ class LoginServiceImplementacao(
 
         return login.usuario
     }
-
 
     override fun logout(usuarioId: Int) {
         val sessaoAtiva = getSessaoAtiva(usuarioId)

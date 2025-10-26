@@ -16,6 +16,9 @@ data class Login(
     @Column(nullable = false)
     var senha: String,
 
+    @Column(name = "primeiro_acesso", nullable = false)
+    var primeiroAcesso: Boolean = true,
+
     @OneToMany(mappedBy = "login", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     val sessoes: List<Sessao> = mutableListOf()
 )
