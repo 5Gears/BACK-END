@@ -19,7 +19,6 @@ object UsuarioMapper {
         valorHora = entity.valorHora,
         idEmpresa = entity.empresa?.id,
         idNivel = entity.nivelPermissao?.id,
-        idCargo = usuarioCargo?.cargo?.idCargo,
         cargoNome = usuarioCargo?.cargo?.nome,
         senioridade = usuarioCargo?.senioridade?.name,
         experienciaAnos = usuarioCargo?.experienciaAnos

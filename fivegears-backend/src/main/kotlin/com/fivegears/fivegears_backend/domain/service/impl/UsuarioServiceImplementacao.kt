@@ -22,7 +22,6 @@ class UsuarioServiceImplementacao(
     private val nivelPermissaoRepository: NivelPermissaoRepository
 ) : UsuarioService {
 
-
     override fun listarTodos(): ResponseEntity<List<UsuarioDTO>> {
         val usuarios = usuarioRepository.findAll()
         val dtos = usuarios.map { usuario ->
@@ -32,14 +31,12 @@ class UsuarioServiceImplementacao(
         return ResponseEntity.ok(dtos)
     }
 
-
     override fun buscarPorId(id: Int): ResponseEntity<UsuarioDTO> {
         val usuario = usuarioRepository.findById(id)
             .orElseThrow { RuntimeException("Usuário não encontrado") }
         val usuarioCargo = usuarioCargoRepository.findByUsuario(usuario).firstOrNull()
         return ResponseEntity.ok(UsuarioMapper.toDTO(usuario, usuarioCargo))
     }
-
 
     override fun criar(dto: UsuarioDTO): ResponseEntity<UsuarioDTO> {
         // Cria usuário base
@@ -53,10 +50,10 @@ class UsuarioServiceImplementacao(
         )
         loginRepository.save(login)
 
-        // Associa cargo + senioridade
-        dto.idCargo?.let { cargoId ->
-            val cargo = cargoRepository.findById(cargoId)
-                .orElseThrow { RuntimeException("Cargo não encontrado: $cargoId") }
+        // Associa cargo pelo nome e define senioridade
+        dto.cargoNome?.let { nome ->
+            val cargo = cargoRepository.findByNome(nome)
+                ?: throw RuntimeException("Cargo '$nome' não encontrado")
 
             val usuarioCargo = UsuarioCargo(
                 id = UsuarioCargoId(
@@ -65,8 +62,10 @@ class UsuarioServiceImplementacao(
                 ),
                 usuario = savedUsuario,
                 cargo = cargo,
-                senioridade = dto.senioridade?.let { SenioridadeCargo.valueOf(it) } ?: SenioridadeCargo.JUNIOR,
-                dataInicio = LocalDate.now() // começa a contar experiência agora
+                senioridade = dto.senioridade
+                    ?.let { SenioridadeCargo.valueOf(it.uppercase()) }
+                    ?: SenioridadeCargo.JUNIOR,
+                dataInicio = LocalDate.now()
             )
             usuarioCargoRepository.save(usuarioCargo)
         }
@@ -74,7 +73,6 @@ class UsuarioServiceImplementacao(
         val usuarioCargo = usuarioCargoRepository.findByUsuario(savedUsuario).firstOrNull()
         return ResponseEntity.ok(UsuarioMapper.toDTO(savedUsuario, usuarioCargo))
     }
-
 
     override fun atualizar(id: Int, dto: UsuarioDTO): ResponseEntity<UsuarioDTO> {
         val existente = usuarioRepository.findById(id)
@@ -85,7 +83,7 @@ class UsuarioServiceImplementacao(
                 cpf = dto.cpf
                 telefone = dto.telefone
                 area = dto.area
-                cargaHoraria = dto.cargaHoraria!!
+                cargaHoraria = dto.cargaHoraria ?: 0
                 valorHora = dto.valorHora
                 empresa = dto.idEmpresa?.let { Empresa(it) }
 
@@ -97,9 +95,9 @@ class UsuarioServiceImplementacao(
 
             val updatedUsuario = usuarioRepository.save(usuario)
 
-            dto.idCargo?.let { cargoId ->
-                val cargo = cargoRepository.findById(cargoId)
-                    .orElseThrow { RuntimeException("Cargo não encontrado: $cargoId") }
+            dto.cargoNome?.let { nome ->
+                val cargo = cargoRepository.findByNome(nome)
+                    ?: throw RuntimeException("Cargo '$nome' não encontrado")
 
                 val usuarioCargo = UsuarioCargo(
                     id = UsuarioCargoId(
@@ -108,9 +106,10 @@ class UsuarioServiceImplementacao(
                     ),
                     usuario = updatedUsuario,
                     cargo = cargo,
-                    senioridade = dto.senioridade?.let { SenioridadeCargo.valueOf(it) } ?: SenioridadeCargo.JUNIOR
+                    senioridade = dto.senioridade
+                        ?.let { SenioridadeCargo.valueOf(it.uppercase()) }
+                        ?: SenioridadeCargo.JUNIOR
                 )
-
                 usuarioCargoRepository.save(usuarioCargo)
             }
 
@@ -120,7 +119,6 @@ class UsuarioServiceImplementacao(
             ResponseEntity.notFound().build()
         }
     }
-
 
     override fun deletar(id: Int): ResponseEntity<Void> {
         return if (usuarioRepository.existsById(id)) {
