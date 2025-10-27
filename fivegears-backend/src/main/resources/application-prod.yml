@@ -12,3 +12,6 @@ spring:
 
 server:
   port: 8080
+
+esco:
+  bucket-url: "https://bucket-raw-grupo5-fivegears.s3.us-east-1.amazonaws.com/dados-esco/ESCO_cargos_competencias_limpo.xlsx"
