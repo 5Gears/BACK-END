@@ -5,10 +5,12 @@ import com.fivegears.fivegears_backend.domain.service.impl.interfaces.ProjetoSer
 import com.fivegears.fivegears_backend.dto.ProjetoRequestDTO
 import com.fivegears.fivegears_backend.dto.ProjetoResponseDTO
 import com.fivegears.fivegears_backend.entity.UsuarioProjeto
+import com.fivegears.fivegears_backend.entity.enum.StatusAlocacao
 import com.fivegears.fivegears_backend.entity.enum.StatusProjeto
 import com.fivegears.fivegears_backend.mapper.ProjetoMapper
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDate
 
 @Service
 @Transactional
@@ -83,26 +85,28 @@ class ProjetoServiceImplementacao(
     override fun listarUsuariosDoProjeto(idProjeto: Int): List<UsuarioProjeto> =
         usuarioProjetoRepository.findByProjetoId(idProjeto)
 
-    override fun adicionarUsuarioAoProjeto(idProjeto: Int, idUsuario: Int): UsuarioProjeto {
+    override fun adicionarUsuarioAoProjeto(
+        idProjeto: Int,
+        idUsuario: Int,
+        horasAlocadas: Int,
+        horasPorDia: Int,
+        dataInicio: LocalDate?,
+        dataFim: LocalDate?
+    ): UsuarioProjeto {
         val projeto = projetoRepository.findById(idProjeto)
             .orElseThrow { RuntimeException("Projeto não encontrado") }
-
-        if (projeto.status != StatusProjeto.EM_DESENVOLVIMENTO) {
-            throw RuntimeException("Usuários só podem ser alocados em projetos em desenvolvimento.")
-        }
-
         val usuario = usuarioRepository.findById(idUsuario)
             .orElseThrow { RuntimeException("Usuário não encontrado") }
 
         val usuarioProjeto = UsuarioProjeto(
             projeto = projeto,
             usuario = usuario,
-            status = com.fivegears.fivegears_backend.entity.enum.StatusAlocacao.ALOCADO,
-            horasPorDia = 8,
-            horasAlocadas = 0,
-            dataAlocacao = java.time.LocalDate.now()
+            horasAlocadas = horasAlocadas,
+            horasPorDia = horasPorDia,
+            dataAlocacao = dataInicio ?: LocalDate.now(),
+            dataSaida = dataFim,
+            status = StatusAlocacao.ALOCADO
         )
-
         return usuarioProjetoRepository.save(usuarioProjeto)
     }
 

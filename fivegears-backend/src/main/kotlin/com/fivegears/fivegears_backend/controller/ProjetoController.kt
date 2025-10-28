@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import java.time.LocalDate
 
 @RestController
 @RequestMapping("/api/projetos")
@@ -60,14 +61,23 @@ class ProjetoController(
         ResponseEntity.ok(projetoService.listarUsuariosDoProjeto(idProjeto))
 
     @PostMapping("/{idProjeto}/usuarios/{idUsuario}")
-    @Operation(summary = "Adicionar usuário a um projeto")
+    @Operation(summary = "Adicionar usuário a um projeto com controle de horas")
     fun adicionarUsuarioAoProjeto(
         @PathVariable idProjeto: Int,
-        @PathVariable idUsuario: Int
+        @PathVariable idUsuario: Int,
+        @RequestBody body: Map<String, Any>
     ): ResponseEntity<UsuarioProjeto> {
-        val usuarioProjeto = projetoService.adicionarUsuarioAoProjeto(idProjeto, idUsuario)
+        val horasAlocadas = (body["horasAlocadas"] as? Int) ?: 0
+        val horasPorDia = (body["horasPorDia"] as? Int) ?: 0
+        val dataInicio = (body["dataAlocacao"] as? String)?.let { LocalDate.parse(it) }
+        val dataFim = (body["dataSaida"] as? String)?.let { LocalDate.parse(it) }
+
+        val usuarioProjeto = projetoService.adicionarUsuarioAoProjeto(
+            idProjeto, idUsuario, horasAlocadas, horasPorDia, dataInicio, dataFim
+        )
         return ResponseEntity.status(HttpStatus.CREATED).body(usuarioProjeto)
     }
+
 
     @DeleteMapping("/{idProjeto}/usuarios/{idUsuario}")
     @Operation(summary = "Remover usuário de um projeto")
