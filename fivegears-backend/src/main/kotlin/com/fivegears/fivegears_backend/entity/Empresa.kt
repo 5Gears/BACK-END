@@ -16,7 +16,7 @@ data class Empresa(
 
     var fundador: String? = null,
 
-    @Column(nullable = false, unique = true, length = 18)
+    @Column(nullable = false, unique = true, length = 64)
     var cnpj: String,
 
     @OneToMany(mappedBy = "empresa", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.LAZY)

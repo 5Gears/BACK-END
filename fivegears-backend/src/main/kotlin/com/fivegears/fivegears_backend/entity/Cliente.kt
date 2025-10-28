@@ -14,7 +14,7 @@ data class Cliente(
     @Column(nullable = false)
     var nome: String,
 
-    @Column(nullable = false, unique = true, length = 18)
+    @Column(nullable = false, unique = true, length = 64)
     var cnpj: String,
 
     var emailResponsavel: String? = null,
