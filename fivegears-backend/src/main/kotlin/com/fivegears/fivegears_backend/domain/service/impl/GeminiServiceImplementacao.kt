@@ -120,7 +120,7 @@ class GeminiServiceImplementacao(
         }
     }
 
-    fun buscarUsuarios(filtro: FiltroAlocacao): List<UsuarioAlocadoDTO> {
+    fun buscarUsuarios(filtro: FiltroAlocacao): List<UsuarioAlocadoDTO?> {
         log.info(" Iniciando busca de usuários com filtro: {}", mapper.writeValueAsString(filtro))
         val usuarios = usuarioRepository.findAll()
 
@@ -169,22 +169,25 @@ class GeminiServiceImplementacao(
                 .filter { it.status.name == "ALOCADO" }
                 .mapNotNull { it.projeto?.nome }
 
-            UsuarioAlocadoDTO(
-                id = usuario.id,
-                nome = usuario.nome,
-                email = usuario.email,
-                cargo = cargoAtual?.cargo?.nome,
-                senioridade = cargoAtual?.senioridade?.name,
-                valorHora = usuario.valorHora ?: 0.0,
-                horasDisponiveis = (40 - usuarioProjetoRepository.findByUsuario(usuario)
-                    .filter { it.status.name == "ALOCADO" }
-                    .sumOf { it.horasPorDia }).coerceAtLeast(0),
-                projetosAtivos = projetosAtivos,
-                softSkills = usuarioSoftSkillRepository.findByUsuario(usuario)
-                    .associate { it.softSkill.nome to it.nivel.toEstrela() },
-                competencias = usuarioCompetenciaRepository.findByUsuario(usuario)
-                    .map { it.competencia.nome }
-            )
+            usuario.id?.let {
+                UsuarioAlocadoDTO(
+                    id = it,
+                    nome = usuario.nome,
+                    email = usuario.email,
+                    cargo = cargoAtual?.cargo?.nome,
+                    idCargo = cargoAtual?.cargo?.idCargo,
+                    senioridade = cargoAtual?.senioridade?.name,
+                    valorHora = usuario.valorHora ?: 0.0,
+                    horasDisponiveis = (40 - usuarioProjetoRepository.findByUsuario(usuario)
+                        .filter { it.status.name == "ALOCADO" }
+                        .sumOf { it.horasPorDia }).coerceAtLeast(0),
+                    projetosAtivos = projetosAtivos,
+                    softSkills = usuarioSoftSkillRepository.findByUsuario(usuario)
+                        .associate { it.softSkill.nome to it.nivel.toEstrela() },
+                    competencias = usuarioCompetenciaRepository.findByUsuario(usuario)
+                        .map { it.competencia.nome }
+                )
+            }
         }
 
         log.info(" {} usuários encontrados pelo filtro.", filtrados.size)

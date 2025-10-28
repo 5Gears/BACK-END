@@ -1,10 +1,11 @@
 package com.fivegears.fivegears_backend.dto
 
 data class UsuarioAlocadoDTO(
-    val id: Int?,
+    val id: Int,
     val nome: String,
-    val email: String,
+    val email: String?,
     val cargo: String?,
+    val idCargo: Int?,
     val senioridade: String?,
     val valorHora: Double,
     val horasDisponiveis: Int,
