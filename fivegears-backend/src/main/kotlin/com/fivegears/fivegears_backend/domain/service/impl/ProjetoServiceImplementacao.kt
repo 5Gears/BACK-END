@@ -2,8 +2,9 @@ package com.fivegears.fivegears_backend.domain.service.impl
 
 import com.fivegears.fivegears_backend.domain.repository.*
 import com.fivegears.fivegears_backend.domain.service.impl.interfaces.ProjetoService
+import com.fivegears.fivegears_backend.dto.ProjetoRequestDTO
 import com.fivegears.fivegears_backend.dto.ProjetoResponseDTO
-import com.fivegears.fivegears_backend.entity.*
+import com.fivegears.fivegears_backend.entity.UsuarioProjeto
 import com.fivegears.fivegears_backend.entity.enum.StatusProjeto
 import com.fivegears.fivegears_backend.mapper.ProjetoMapper
 import org.springframework.stereotype.Service
@@ -15,7 +16,8 @@ class ProjetoServiceImplementacao(
     private val projetoRepository: ProjetoRepository,
     private val usuarioProjetoRepository: UsuarioProjetoRepository,
     private val usuarioRepository: UsuarioRepository,
-    private val cargoRepository: CargoRepository
+    private val cargoRepository: CargoRepository,
+    private val clienteRepository: ClienteRepository
 ) : ProjetoService {
 
     override fun buscarPorNome(nome: String): ProjetoResponseDTO {
@@ -32,32 +34,40 @@ class ProjetoServiceImplementacao(
             .map { ProjetoMapper.toDTO(it) }
             .orElseThrow { RuntimeException("Projeto com ID $id não encontrado") }
 
-    override fun criar(projeto: Projeto): ProjetoResponseDTO {
-        val existente = projetoRepository.findByNomeIgnoreCase(projeto.nome)
-        if (existente != null) {
-            throw RuntimeException("Já existe um projeto cadastrado com o nome '${projeto.nome}'.")
+    override fun criar(request: ProjetoRequestDTO): ProjetoResponseDTO {
+        val cliente = request.clienteId?.let {
+            clienteRepository.findById(it).orElseThrow { RuntimeException("Cliente não encontrado") }
         }
 
-        projeto.status = StatusProjeto.EM_PLANEJAMENTO
+        val responsavel = usuarioRepository.findById(request.responsavelId)
+            .orElseThrow { RuntimeException("Responsável não encontrado") }
+
+        val projeto = ProjetoMapper.fromRequest(request, cliente, responsavel)
         val salvo = projetoRepository.save(projeto)
         return ProjetoMapper.toDTO(salvo)
     }
 
-    override fun atualizar(id: Int, projetoAtualizado: Projeto): ProjetoResponseDTO {
+    override fun atualizar(id: Int, request: ProjetoRequestDTO): ProjetoResponseDTO {
         val projetoExistente = projetoRepository.findById(id)
             .orElseThrow { RuntimeException("Projeto com ID $id não encontrado") }
 
+        var cliente = request.clienteId?.let {
+            clienteRepository.findById(it).orElseThrow { RuntimeException("Cliente não encontrado") }
+        }
+
+        val responsavel = usuarioRepository.findById(request.responsavelId)
+            .orElseThrow { RuntimeException("Responsável não encontrado") }
+
         projetoExistente.apply {
-            nome = projetoAtualizado.nome
-            descricao = projetoAtualizado.descricao
-            tempoEstimadoHoras = projetoAtualizado.tempoEstimadoHoras
-            orcamento = projetoAtualizado.orcamento
-            status = projetoAtualizado.status
-            dataInicio = projetoAtualizado.dataInicio
-            dataFim = projetoAtualizado.dataFim
-            cliente = projetoAtualizado.cliente
-            responsavel = projetoAtualizado.responsavel
-            competenciasRequeridas = projetoAtualizado.competenciasRequeridas
+            nome = request.nome
+            descricao = request.descricao
+            tempoEstimadoHoras = request.tempoEstimadoHoras
+            orcamento = request.orcamento
+            dataInicio = request.dataInicio
+            dataFim = request.dataFim
+            cliente = cliente
+            this.responsavel = responsavel
+            competenciasRequeridas = request.competenciasRequeridas
         }
 
         val salvo = projetoRepository.save(projetoExistente)

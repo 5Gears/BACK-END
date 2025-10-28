@@ -1,8 +1,8 @@
 package com.fivegears.fivegears_backend.controller
 
 import com.fivegears.fivegears_backend.domain.service.impl.interfaces.ProjetoService
+import com.fivegears.fivegears_backend.dto.ProjetoRequestDTO
 import com.fivegears.fivegears_backend.dto.ProjetoResponseDTO
-import com.fivegears.fivegears_backend.entity.Projeto
 import com.fivegears.fivegears_backend.entity.UsuarioProjeto
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -29,15 +29,15 @@ class ProjetoController(
 
     @PostMapping
     @Operation(summary = "Criar um novo projeto")
-    fun criar(@RequestBody projeto: Projeto): ResponseEntity<ProjetoResponseDTO> {
-        val novoProjeto = projetoService.criar(projeto)
+    fun criar(@RequestBody request: ProjetoRequestDTO): ResponseEntity<ProjetoResponseDTO> {
+        val novoProjeto = projetoService.criar(request)
         return ResponseEntity.status(HttpStatus.CREATED).body(novoProjeto)
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Atualizar um projeto existente")
-    fun atualizar(@PathVariable id: Int, @RequestBody projeto: Projeto): ResponseEntity<ProjetoResponseDTO> {
-        val atualizado = projetoService.atualizar(id, projeto)
+    fun atualizar(@PathVariable id: Int, @RequestBody request: ProjetoRequestDTO): ResponseEntity<ProjetoResponseDTO> {
+        val atualizado = projetoService.atualizar(id, request)
         return ResponseEntity.ok(atualizado)
     }
 
