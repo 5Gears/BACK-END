@@ -83,7 +83,7 @@ class ProjetoServiceImplementacao(
     override fun listarUsuariosDoProjeto(idProjeto: Int): List<UsuarioProjeto> =
         usuarioProjetoRepository.findByProjetoId(idProjeto)
 
-    override fun adicionarUsuarioAoProjeto(idProjeto: Int, idUsuario: Int, idCargo: Int): UsuarioProjeto {
+    override fun adicionarUsuarioAoProjeto(idProjeto: Int, idUsuario: Int): UsuarioProjeto {
         val projeto = projetoRepository.findById(idProjeto)
             .orElseThrow { RuntimeException("Projeto não encontrado") }
 
@@ -94,13 +94,13 @@ class ProjetoServiceImplementacao(
         val usuario = usuarioRepository.findById(idUsuario)
             .orElseThrow { RuntimeException("Usuário não encontrado") }
 
-        val cargo = cargoRepository.findById(idCargo)
-            .orElseThrow { RuntimeException("Cargo não encontrado") }
-
         val usuarioProjeto = UsuarioProjeto(
             projeto = projeto,
             usuario = usuario,
-            cargo = cargo
+            status = com.fivegears.fivegears_backend.entity.enum.StatusAlocacao.ALOCADO,
+            horasPorDia = 8,
+            horasAlocadas = 0,
+            dataAlocacao = java.time.LocalDate.now()
         )
 
         return usuarioProjetoRepository.save(usuarioProjeto)
@@ -153,5 +153,13 @@ class ProjetoServiceImplementacao(
 
         val salvo = projetoRepository.save(projeto)
         return ProjetoMapper.toDTO(salvo)
+    }
+
+    override fun listarPorResponsavel(idResponsavel: Int): List<ProjetoResponseDTO> {
+        val projetos = projetoRepository.findByResponsavelId(idResponsavel)
+        if (projetos.isEmpty()) {
+            throw RuntimeException("Nenhum projeto encontrado para o responsável com ID $idResponsavel")
+        }
+        return projetos.map { ProjetoMapper.toDTO(it) }
     }
 }

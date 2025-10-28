@@ -12,9 +12,10 @@ interface ProjetoService {
     fun atualizar(id: Int, request: ProjetoRequestDTO): ProjetoResponseDTO
     fun deletar(id: Int)
     fun listarUsuariosDoProjeto(idProjeto: Int): List<UsuarioProjeto>
-    fun adicionarUsuarioAoProjeto(idProjeto: Int, idUsuario: Int, idCargo: Int): UsuarioProjeto
+    fun adicionarUsuarioAoProjeto(idProjeto: Int, idUsuario: Int): UsuarioProjeto
     fun removerUsuarioDoProjeto(idProjeto: Int, idUsuario: Int)
     fun aceitarProjeto(id: Int): ProjetoResponseDTO
     fun negarProjeto(id: Int): ProjetoResponseDTO
     fun finalizarProjeto(id: Int, concluido: Boolean): ProjetoResponseDTO
+    fun listarPorResponsavel(idResponsavel: Int): List<ProjetoResponseDTO>
 }

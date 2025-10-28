@@ -22,6 +22,12 @@ class ProjetoController(
     fun listarTodos(): ResponseEntity<List<ProjetoResponseDTO>> =
         ResponseEntity.ok(projetoService.listarTodos())
 
+    @GetMapping("/gerente/{idResponsavel}")
+    @Operation(summary = "Listar projetos de um gerente (responsável)")
+    fun listarPorResponsavel(@PathVariable idResponsavel: Int): ResponseEntity<List<ProjetoResponseDTO>> =
+        ResponseEntity.ok(projetoService.listarPorResponsavel(idResponsavel))
+
+
     @GetMapping("/{id}")
     @Operation(summary = "Buscar um projeto por ID")
     fun buscarPorId(@PathVariable id: Int): ResponseEntity<ProjetoResponseDTO> =
@@ -53,14 +59,13 @@ class ProjetoController(
     fun listarUsuariosDoProjeto(@PathVariable idProjeto: Int): ResponseEntity<List<UsuarioProjeto>> =
         ResponseEntity.ok(projetoService.listarUsuariosDoProjeto(idProjeto))
 
-    @PostMapping("/{idProjeto}/usuarios/{idUsuario}/cargo/{idCargo}")
+    @PostMapping("/{idProjeto}/usuarios/{idUsuario}")
     @Operation(summary = "Adicionar usuário a um projeto")
     fun adicionarUsuarioAoProjeto(
         @PathVariable idProjeto: Int,
-        @PathVariable idUsuario: Int,
-        @PathVariable idCargo: Int
+        @PathVariable idUsuario: Int
     ): ResponseEntity<UsuarioProjeto> {
-        val usuarioProjeto = projetoService.adicionarUsuarioAoProjeto(idProjeto, idUsuario, idCargo)
+        val usuarioProjeto = projetoService.adicionarUsuarioAoProjeto(idProjeto, idUsuario)
         return ResponseEntity.status(HttpStatus.CREATED).body(usuarioProjeto)
     }
 

@@ -21,10 +21,6 @@ data class UsuarioProjeto(
     @JsonBackReference(value = "usuario-usuarioProjeto")
     var usuario: Usuario? = null,
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_cargo")
-    var cargo: Cargo? = null,
-
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     var status: com.fivegears.fivegears_backend.entity.enum.StatusAlocacao = com.fivegears.fivegears_backend.entity.enum.StatusAlocacao.ALOCADO,
