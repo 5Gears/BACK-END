@@ -19,13 +19,12 @@ data class Empresa(
     @Column(nullable = false, unique = true, length = 18)
     var cnpj: String,
 
-    // A empresa é o "lado principal" da relação com endereço e usuário
     @OneToMany(mappedBy = "empresa", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.LAZY)
-    @JsonManagedReference
+    @JsonManagedReference(value = "empresa-endereco")
     var enderecos: MutableList<Endereco> = mutableListOf(),
 
     @OneToMany(mappedBy = "empresa", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
-    @JsonManagedReference
+    @JsonManagedReference(value = "empresa-usuario")
     val usuarios: MutableList<Usuario> = mutableListOf()
 ) {
     constructor(id: Int) : this(id, "", null, "")

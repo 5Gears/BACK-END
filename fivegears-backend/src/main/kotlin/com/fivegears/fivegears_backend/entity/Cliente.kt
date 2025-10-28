@@ -19,10 +19,11 @@ data class Cliente(
 
     var emailResponsavel: String? = null,
 
-    // Cliente é o lado principal da relação com Endereco
+    // Cliente é o lado principal
     @OneToMany(mappedBy = "cliente", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.LAZY)
-    @JsonManagedReference
+    @JsonManagedReference(value = "cliente-endereco")
     var enderecos: MutableList<Endereco> = mutableListOf()
-) {
+)
+ {
     constructor(id: Int) : this(id, "", "", null)
 }

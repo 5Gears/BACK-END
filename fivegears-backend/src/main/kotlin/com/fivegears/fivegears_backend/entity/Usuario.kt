@@ -1,11 +1,13 @@
 package com.fivegears.fivegears_backend.entity
 
+import com.fasterxml.jackson.annotation.JsonBackReference
 import jakarta.persistence.*
 
 @Entity
 @Table(name = "usuario")
 data class Usuario(
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_usuario")
     val id: Int? = null,
 
@@ -27,8 +29,9 @@ data class Usuario(
     @Column(name = "valor_hora")
     var valorHora: Double? = 0.0,
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_empresa")
+    @JsonBackReference(value = "empresa-usuario")
     var empresa: Empresa? = null,
 
     @ManyToOne

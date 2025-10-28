@@ -20,15 +20,15 @@ data class Endereco(
     var estado: String? = null,
     var cep: String? = null,
 
-    // Evita loop empresa → endereço → empresa
+    // Empresa
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_empresa")
-    @JsonBackReference
+    @JsonBackReference(value = "empresa-endereco")
     var empresa: Empresa? = null,
 
-    // Evita loop cliente → endereço → cliente
+    // Cliente
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_cliente")
-    @JsonBackReference
+    @JsonBackReference(value = "cliente-endereco")
     var cliente: Cliente? = null
 )
