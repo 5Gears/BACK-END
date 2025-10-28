@@ -1,7 +1,6 @@
 package com.fivegears.fivegears_backend.entity
 
 import jakarta.persistence.*
-import java.math.BigDecimal
 
 @Entity
 @Table(name = "usuario")
@@ -20,7 +19,6 @@ data class Usuario(
     var cpf: String? = null,
 
     var telefone: String? = null,
-
     var area: String? = null,
 
     @Column(name = "carga_horaria", nullable = false)
@@ -36,6 +34,4 @@ data class Usuario(
     @ManyToOne
     @JoinColumn(name = "id_nivel")
     var nivelPermissao: NivelPermissao? = null,
-
 )
-

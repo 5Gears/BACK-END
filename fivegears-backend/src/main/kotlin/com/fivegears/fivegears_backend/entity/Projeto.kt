@@ -1,5 +1,6 @@
 package com.fivegears.fivegears_backend.entity
 
+import com.fasterxml.jackson.annotation.JsonManagedReference
 import com.fivegears.fivegears_backend.entity.enum.StatusProjeto
 import jakarta.persistence.*
 import java.math.BigDecimal
@@ -37,9 +38,10 @@ data class Projeto(
     @JoinColumn(name = "id_responsavel", nullable = false)
     var responsavel: Usuario,
 
-    @OneToMany(mappedBy = "projeto", cascade = [CascadeType.ALL], orphanRemoval = true)
+    // Relação principal — evita repetição com @JsonManagedReference
+    @OneToMany(mappedBy = "projeto", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonManagedReference
     val usuarios: MutableList<UsuarioProjeto> = mutableListOf(),
 
     var competenciasRequeridas: String? = null
-
 )

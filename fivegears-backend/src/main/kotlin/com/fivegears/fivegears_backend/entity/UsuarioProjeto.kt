@@ -1,10 +1,8 @@
 package com.fivegears.fivegears_backend.entity
 
-import com.fivegears.fivegears_backend.entity.enum.StatusAlocacao
-import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonBackReference
 import jakarta.persistence.*
 import java.time.LocalDate
-import java.time.LocalDateTime
 
 @Entity
 @Table(name = "usuario_projeto")
@@ -14,13 +12,12 @@ data class UsuarioProjeto(
     @Id
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_projeto", nullable = false)
-    @JsonIgnore
+    @JsonBackReference // evita duplicar o projeto dentro do projeto
     var projeto: Projeto? = null,
 
     @Id
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario", nullable = false)
-    @JsonIgnore
     var usuario: Usuario? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -29,7 +26,7 @@ data class UsuarioProjeto(
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    var status: StatusAlocacao = StatusAlocacao.ALOCADO,
+    var status: com.fivegears.fivegears_backend.entity.enum.StatusAlocacao = com.fivegears.fivegears_backend.entity.enum.StatusAlocacao.ALOCADO,
 
     @Column(name = "horas_alocadas")
     var horasAlocadas: Int = 0,

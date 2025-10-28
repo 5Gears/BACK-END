@@ -1,11 +1,13 @@
 package com.fivegears.fivegears_backend.entity
 
+import com.fasterxml.jackson.annotation.JsonManagedReference
 import jakarta.persistence.*
 
 @Entity
 @Table(name = "cliente")
 data class Cliente(
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_cliente")
     val id: Int? = null,
 
@@ -17,7 +19,9 @@ data class Cliente(
 
     var emailResponsavel: String? = null,
 
-    @OneToMany(mappedBy = "cliente", cascade = [CascadeType.ALL], orphanRemoval = true)
+    // Cliente é o lado principal da relação com Endereco
+    @OneToMany(mappedBy = "cliente", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonManagedReference
     var enderecos: MutableList<Endereco> = mutableListOf()
 ) {
     constructor(id: Int) : this(id, "", "", null)
