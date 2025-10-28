@@ -38,10 +38,10 @@ data class Projeto(
     @JoinColumn(name = "id_responsavel", nullable = false)
     var responsavel: Usuario,
 
-    // Relação principal — evita repetição com @JsonManagedReference
     @OneToMany(mappedBy = "projeto", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.LAZY)
-    @JsonManagedReference
+    @JsonManagedReference(value = "projeto-usuarioProjeto")
     val usuarios: MutableList<UsuarioProjeto> = mutableListOf(),
 
     var competenciasRequeridas: String? = null
 )
+

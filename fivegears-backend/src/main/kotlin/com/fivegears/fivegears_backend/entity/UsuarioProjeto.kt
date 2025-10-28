@@ -12,12 +12,13 @@ data class UsuarioProjeto(
     @Id
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_projeto", nullable = false)
-    @JsonBackReference // evita duplicar o projeto dentro do projeto
+    @JsonBackReference(value = "projeto-usuarioProjeto")
     var projeto: Projeto? = null,
 
     @Id
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario", nullable = false)
+    @JsonBackReference(value = "usuario-usuarioProjeto")
     var usuario: Usuario? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)

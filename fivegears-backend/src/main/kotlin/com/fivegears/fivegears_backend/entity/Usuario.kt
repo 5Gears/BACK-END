@@ -1,6 +1,7 @@
 package com.fivegears.fivegears_backend.entity
 
 import com.fasterxml.jackson.annotation.JsonBackReference
+import com.fasterxml.jackson.annotation.JsonManagedReference
 import jakarta.persistence.*
 
 @Entity
@@ -37,4 +38,8 @@ data class Usuario(
     @ManyToOne
     @JoinColumn(name = "id_nivel")
     var nivelPermissao: NivelPermissao? = null,
+
+    @OneToMany(mappedBy = "usuario", cascade = [CascadeType.ALL], orphanRemoval = true)
+    @JsonManagedReference(value = "usuario-usuarioProjeto")
+    var projetos: MutableList<UsuarioProjeto> = mutableListOf()
 )
