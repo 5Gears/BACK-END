@@ -1,6 +1,7 @@
 package com.fivegears.fivegears_backend.controller
 
 import com.fivegears.fivegears_backend.domain.service.impl.interfaces.ProjetoService
+import com.fivegears.fivegears_backend.dto.ProjetoResponseDTO
 import com.fivegears.fivegears_backend.entity.Projeto
 import com.fivegears.fivegears_backend.entity.UsuarioProjeto
 import io.swagger.v3.oas.annotations.Operation
@@ -18,24 +19,24 @@ class ProjetoController(
 
     @GetMapping
     @Operation(summary = "Listar todos os projetos")
-    fun listarTodos(): ResponseEntity<List<Projeto>> =
+    fun listarTodos(): ResponseEntity<List<ProjetoResponseDTO>> =
         ResponseEntity.ok(projetoService.listarTodos())
 
     @GetMapping("/{id}")
     @Operation(summary = "Buscar um projeto por ID")
-    fun buscarPorId(@PathVariable id: Int): ResponseEntity<Projeto> =
+    fun buscarPorId(@PathVariable id: Int): ResponseEntity<ProjetoResponseDTO> =
         ResponseEntity.ok(projetoService.buscarPorId(id))
 
     @PostMapping
     @Operation(summary = "Criar um novo projeto")
-    fun criar(@RequestBody projeto: Projeto): ResponseEntity<Projeto> {
+    fun criar(@RequestBody projeto: Projeto): ResponseEntity<ProjetoResponseDTO> {
         val novoProjeto = projetoService.criar(projeto)
         return ResponseEntity.status(HttpStatus.CREATED).body(novoProjeto)
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Atualizar um projeto existente")
-    fun atualizar(@PathVariable id: Int, @RequestBody projeto: Projeto): ResponseEntity<Projeto> {
+    fun atualizar(@PathVariable id: Int, @RequestBody projeto: Projeto): ResponseEntity<ProjetoResponseDTO> {
         val atualizado = projetoService.atualizar(id, projeto)
         return ResponseEntity.ok(atualizado)
     }
@@ -75,25 +76,19 @@ class ProjetoController(
 
     @PutMapping("/{id}/aceitar")
     @Operation(summary = "Aceitar um projeto (muda status para EM_DESENVOLVIMENTO)")
-    fun aceitarProjeto(@PathVariable id: Int): ResponseEntity<Projeto> {
-        val projeto = projetoService.aceitarProjeto(id)
-        return ResponseEntity.ok(projeto)
-    }
+    fun aceitarProjeto(@PathVariable id: Int): ResponseEntity<ProjetoResponseDTO> =
+        ResponseEntity.ok(projetoService.aceitarProjeto(id))
 
     @PutMapping("/{id}/negar")
     @Operation(summary = "Negar um projeto (muda status para NEGADO)")
-    fun negarProjeto(@PathVariable id: Int): ResponseEntity<Projeto> {
-        val projeto = projetoService.negarProjeto(id)
-        return ResponseEntity.ok(projeto)
-    }
+    fun negarProjeto(@PathVariable id: Int): ResponseEntity<ProjetoResponseDTO> =
+        ResponseEntity.ok(projetoService.negarProjeto(id))
 
     @PutMapping("/{id}/finalizar")
-    @Operation(summary = "Finalizar um projeto (muda status para CONCLUIDO)")
+    @Operation(summary = "Finalizar um projeto (muda status para CONCLUIDO ou CANCELADO)")
     fun finalizarProjeto(
         @PathVariable id: Int,
         @RequestParam concluido: Boolean
-    ): ResponseEntity<Projeto> {
-        val projeto = projetoService.finalizarProjeto(id, concluido)
-        return ResponseEntity.ok(projeto)
-    }
+    ): ResponseEntity<ProjetoResponseDTO> =
+        ResponseEntity.ok(projetoService.finalizarProjeto(id, concluido))
 }

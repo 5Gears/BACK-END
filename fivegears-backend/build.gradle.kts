@@ -23,6 +23,7 @@ repositories {
 dependencies {
 	implementation("org.apache.poi:poi-ooxml:5.2.3")
 	implementation("org.json:json:20231013")
+	implementation("com.fasterxml.jackson.datatype:jackson-datatype-hibernate5:2.17.2")
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
