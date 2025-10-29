@@ -38,31 +38,31 @@ class GeminiServiceImplementacao(
 
     // Prompt aprimorado mantendo o fluxo original
     private val promptBase = """
-        Você é o SunnyBOT, assistente de alocação de profissionais do sistema FiveGears.
+Você é o SunnyBOT, assistente de alocação de profissionais do sistema FiveGears.
 
-        Sua função é interpretar mensagens de gerentes de projeto e gerar filtros objetivos
-        para buscar usuários no banco de dados.
+Sua função é interpretar mensagens de gerentes de projeto e gerar filtros objetivos
+para buscar usuários no banco de dados.
 
-         Regras:
-        - Responda apenas com JSON puro, sem explicações nem texto adicional.
-        - Estrutura do JSON:
-          {
-            "competencias": ["Kotlin", "Segurança da Informação"],
-            "cargoMinimo": "JUNIOR",
-            "horasDisponiveisMin": 20,
-            "valorHoraMax": 120.0,
-            "softSkills": ["Trabalho em equipe", "Proatividade"]
-          }
+Responda apenas com JSON puro, sem texto extra.
+Estrutura esperada:
+{
+  "cargoNome": "Programador",
+  "cargoMinimo": "JUNIOR",
+  "competencias": ["Kotlin", "Spring Boot"],
+  "softSkills": ["Proatividade", "Trabalho em equipe"],
+  "horasDisponiveisMin": 20,
+  "valorHoraMax": 120.0
+}
 
-         Instruções:
-        - Extraia palavras-chave técnicas (competencias) da mensagem.
-        - Inferir "cargoMinimo" conforme o texto (ex: estagiário → ESTAGIARIO, júnior → JUNIOR, pleno → PLENO, sênior → SENIOR).
-        - Se mencionar prazo curto ou dedicação parcial, ajuste "horasDisponiveisMin".
-        - Se mencionar orçamento, ajuste "valorHoraMax".
-        - "softSkills" deve conter atitudes ou comportamentos desejados.
-        - **Não cite nomes de pessoas nem projetos**.
-        - Se não entender a solicitação, retorne {"erro": "Consulta não encontrada"}.
-    """.trimIndent()
+Regras:
+- "cargoNome" deve conter o nome do cargo solicitado (ex: "Programador", "Analista de Dados", "Designer").
+- "cargoMinimo" deve conter uma das opções exatas: ESTAGIARIO, JUNIOR, PLENO, SENIOR.
+- Extraia palavras-chave técnicas da mensagem (competências).
+- Extraia soft skills se forem mencionadas.
+- Se mencionar "prazo curto" ou "dedicação parcial", ajuste horasDisponiveisMin.
+- Se mencionar orçamento, ajuste valorHoraMax.
+- Se não entender a solicitação, retorne {"erro": "Consulta não encontrada"}.
+""".trimIndent()
 
     // Comandos válidos reconhecidos
     private val comandosPermitidos = listOf(
@@ -125,52 +125,38 @@ class GeminiServiceImplementacao(
 
         val usuarios = usuarioRepository.findAll()
 
-        fun normalizarSenioridade(input: String?): SenioridadeCargo {
-            if (input.isNullOrBlank()) return SenioridadeCargo.JUNIOR // padrão mais neutro
-            val texto = input.trim().lowercase()
+        val nivelFiltro = filtro.cargoMinimo
+        val cargoDesejado = filtro.cargoNome?.trim()?.lowercase()
 
-            // Usa fronteiras de palavra e evita colisões
-            return when {
-                Regex("\\b(sen|sên|senior|sênior)\\b").containsMatchIn(texto) -> SenioridadeCargo.SENIOR
-                Regex("\\b(ple|pleno|mid)\\b").containsMatchIn(texto) -> SenioridadeCargo.PLENO
-                Regex("\\b(jun|junior|júnior)\\b").containsMatchIn(texto) -> SenioridadeCargo.JUNIOR
-                Regex("\\b(est|estagi|trainee)\\b").containsMatchIn(texto) -> SenioridadeCargo.ESTAGIARIO
-                else -> SenioridadeCargo.JUNIOR
-            }
-        }
-
-        // 2️⃣ Define o nível solicitado com segurança
-        val nivelFiltro = normalizarSenioridade(filtro.cargoMinimo?.name ?: filtro.cargoMinimo?.toString())
-
-
-        // 3️⃣ Aplica os filtros
         val filtrados = usuarios.filter { usuario ->
             val cargosUsuario = usuarioCargoRepository.findByUsuario(usuario)
             val cargoAtual = cargosUsuario.firstOrNull() ?: return@filter false
 
-            // Exige correspondência EXATA da senioridade
-            val atendeCargo = cargoAtual.senioridade == nivelFiltro
-            if (!atendeCargo) return@filter false
+            // 1️⃣ Verifica se o cargo combina
+            if (cargoDesejado != null && !cargoAtual.cargo!!.nome.trim().lowercase().contains(cargoDesejado))
+                return@filter false
 
-            // Filtra competências
+            // 2️⃣ Verifica se a senioridade combina
+            if (cargoAtual.senioridade != nivelFiltro) return@filter false
+
+            // 3️⃣ Filtra competências
             val competenciasUsuario = usuarioCompetenciaRepository.findByUsuario(usuario)
                 .map { it.competencia.nome.trim().lowercase() }
                 .toSet()
             if (!filtro.competencias.all { it.trim().lowercase() in competenciasUsuario }) return@filter false
 
-            // Filtra soft skills
+            // 4️⃣ Filtra soft skills
             val softSkillsUsuario = usuarioSoftSkillRepository.findByUsuario(usuario)
                 .associate { it.softSkill.nome.trim().lowercase() to it.nivel.toEstrela() }
             if (!filtro.softSkills.all { it.trim().lowercase() in softSkillsUsuario.keys }) return@filter false
 
-            // Filtra valor/hora
+            // 5️⃣ Filtra valor/hora
             usuario.valorHora?.let { if (it > filtro.valorHoraMax) return@filter false }
 
-            // Filtra horas disponíveis
+            // 6️⃣ Filtra disponibilidade
             val horasAtuais = usuarioProjetoRepository.findByUsuario(usuario)
                 .filter { it.status.name == "ALOCADO" }
                 .sumOf { it.horasPorDia }
-
             val horasDisponiveis = (40 - horasAtuais).coerceAtLeast(0)
             horasDisponiveis >= filtro.horasDisponiveisMin
         }.map { usuario ->
@@ -200,7 +186,7 @@ class GeminiServiceImplementacao(
             }
         }
 
-        log.info("→ {} usuários encontrados com nível EXATO '{}'", filtrados.size, nivelFiltro)
+        log.info("→ {} usuários encontrados com cargo '{}' e nível '{}'", filtrados.size, cargoDesejado, nivelFiltro)
         return filtrados
     }
 
