@@ -121,10 +121,11 @@ class GeminiServiceImplementacao(
     }
 
     fun buscarUsuarios(filtro: FiltroAlocacao): List<UsuarioAlocadoDTO?> {
-        log.info(" Iniciando busca de usuários com filtro: {}", mapper.writeValueAsString(filtro))
+        log.info("Iniciando busca de usuários com filtro: {}", mapper.writeValueAsString(filtro))
+
         val usuarios = usuarioRepository.findAll()
 
-        //  Função auxiliar para interpretar textos de senioridade
+        // 1️⃣ Função auxiliar para interpretar textos de senioridade
         fun normalizarSenioridade(input: String?): SenioridadeCargo {
             if (input == null) return SenioridadeCargo.ESTAGIARIO
             val texto = input.trim().lowercase()
@@ -133,30 +134,38 @@ class GeminiServiceImplementacao(
                 texto.contains("jun") -> SenioridadeCargo.JUNIOR
                 texto.contains("ple") || texto.contains("mid") -> SenioridadeCargo.PLENO
                 texto.contains("sen") -> SenioridadeCargo.SENIOR
-                else -> SenioridadeCargo.JUNIOR // fallback padrão
+                else -> SenioridadeCargo.ESTAGIARIO
             }
         }
 
-        //  Nível mínimo do filtro (já enum, mas tratamos erro caso venha texto errado)
+        // 2️⃣ Define o nível solicitado com segurança
         val nivelFiltro = normalizarSenioridade(filtro.cargoMinimo.name)
+        log.info("→ Nível de senioridade filtrado: {}", nivelFiltro)
 
+        // 3️⃣ Aplica os filtros
         val filtrados = usuarios.filter { usuario ->
             val cargosUsuario = usuarioCargoRepository.findByUsuario(usuario)
+            val cargoAtual = cargosUsuario.firstOrNull() ?: return@filter false
 
-            val atendeCargo = cargosUsuario.any { it.senioridade.ordinal >= nivelFiltro.ordinal }
+            // Exige correspondência EXATA da senioridade
+            val atendeCargo = cargoAtual.senioridade == nivelFiltro
             if (!atendeCargo) return@filter false
 
+            // Filtra competências
             val competenciasUsuario = usuarioCompetenciaRepository.findByUsuario(usuario)
                 .map { it.competencia.nome.trim().lowercase() }
                 .toSet()
             if (!filtro.competencias.all { it.trim().lowercase() in competenciasUsuario }) return@filter false
 
+            // Filtra soft skills
             val softSkillsUsuario = usuarioSoftSkillRepository.findByUsuario(usuario)
                 .associate { it.softSkill.nome.trim().lowercase() to it.nivel.toEstrela() }
             if (!filtro.softSkills.all { it.trim().lowercase() in softSkillsUsuario.keys }) return@filter false
 
+            // Filtra valor/hora
             usuario.valorHora?.let { if (it > filtro.valorHoraMax) return@filter false }
 
+            // Filtra horas disponíveis
             val horasAtuais = usuarioProjetoRepository.findByUsuario(usuario)
                 .filter { it.status.name == "ALOCADO" }
                 .sumOf { it.horasPorDia }
@@ -190,9 +199,10 @@ class GeminiServiceImplementacao(
             }
         }
 
-        log.info(" {} usuários encontrados pelo filtro.", filtrados.size)
+        log.info("→ {} usuários encontrados com nível EXATO '{}'", filtrados.size, nivelFiltro)
         return filtrados
     }
+
 
 
     //  Conversão de nível de soft skill em “estrelas”
