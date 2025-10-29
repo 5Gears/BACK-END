@@ -125,22 +125,23 @@ class GeminiServiceImplementacao(
 
         val usuarios = usuarioRepository.findAll()
 
-        // 1️⃣ Função auxiliar para interpretar textos de senioridade
         fun normalizarSenioridade(input: String?): SenioridadeCargo {
-            if (input == null) return SenioridadeCargo.ESTAGIARIO
+            if (input.isNullOrBlank()) return SenioridadeCargo.JUNIOR // padrão mais neutro
             val texto = input.trim().lowercase()
+
+            // Usa fronteiras de palavra e evita colisões
             return when {
-                texto.contains("est") || texto.contains("trainee") -> SenioridadeCargo.ESTAGIARIO
-                texto.contains("jun") -> SenioridadeCargo.JUNIOR
-                texto.contains("ple") || texto.contains("mid") -> SenioridadeCargo.PLENO
-                texto.contains("sen") -> SenioridadeCargo.SENIOR
-                else -> SenioridadeCargo.ESTAGIARIO
+                Regex("\\b(sen|sên|senior|sênior)\\b").containsMatchIn(texto) -> SenioridadeCargo.SENIOR
+                Regex("\\b(ple|pleno|mid)\\b").containsMatchIn(texto) -> SenioridadeCargo.PLENO
+                Regex("\\b(jun|junior|júnior)\\b").containsMatchIn(texto) -> SenioridadeCargo.JUNIOR
+                Regex("\\b(est|estagi|trainee)\\b").containsMatchIn(texto) -> SenioridadeCargo.ESTAGIARIO
+                else -> SenioridadeCargo.JUNIOR
             }
         }
 
         // 2️⃣ Define o nível solicitado com segurança
-        val nivelFiltro = normalizarSenioridade(filtro.cargoMinimo.name)
-        log.info("→ Nível de senioridade filtrado: {}", nivelFiltro)
+        val nivelFiltro = normalizarSenioridade(filtro.cargoMinimo?.name ?: filtro.cargoMinimo?.toString())
+
 
         // 3️⃣ Aplica os filtros
         val filtrados = usuarios.filter { usuario ->
