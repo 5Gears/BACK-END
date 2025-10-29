@@ -1,16 +1,15 @@
 package com.fivegears.fivegears_backend.domain.service.impl
 
 import com.fivegears.fivegears_backend.config.GeminiConfig
+import com.fivegears.fivegears_backend.domain.repository.*
 import com.fivegears.fivegears_backend.dto.FiltroAlocacao
 import com.fivegears.fivegears_backend.dto.UsuarioAlocadoDTO
 import com.fivegears.fivegears_backend.entity.enum.NivelSoftSkill
+import com.fivegears.fivegears_backend.entity.enum.SenioridadeCargo
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fivegears.fivegears_backend.domain.repository.*
-import com.fivegears.fivegears_backend.entity.enum.SenioridadeCargo
 import org.slf4j.LoggerFactory
 import org.springframework.http.*
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
 
@@ -23,142 +22,170 @@ class GeminiServiceImplementacao(
     private val usuarioSoftSkillRepository: UsuarioSoftSkillRepository,
     private val usuarioProjetoRepository: UsuarioProjetoRepository
 ) {
-
     private val log = LoggerFactory.getLogger(GeminiServiceImplementacao::class.java)
     private val mapper = ObjectMapper()
+    private val restTemplate = RestTemplate()
 
-    // Configuração do RestTemplate com timeout de 10s
-    private val restTemplate: RestTemplate by lazy {
-        val factory = HttpComponentsClientHttpRequestFactory().apply {
-            setConnectTimeout(10_000)
-            setReadTimeout(10_000)
-        }
-        RestTemplate(factory)
-    }
-
-    // Prompt aprimorado mantendo o fluxo original
+    // =========================================
+    // 🧩 PROMPT BASE APRIMORADO
+    // =========================================
     private val promptBase = """
-Você é o SunnyBOT, assistente de alocação de profissionais do sistema FiveGears.
-
-Sua função é interpretar mensagens de gerentes de projeto e gerar filtros objetivos
-para buscar usuários no banco de dados.
-
-Responda apenas com JSON puro, sem texto extra.
-Estrutura esperada:
-{
-  "cargoNome": "Programador",
-  "cargoMinimo": "JUNIOR",
-  "competencias": ["Kotlin", "Spring Boot"],
-  "softSkills": ["Proatividade", "Trabalho em equipe"],
-  "horasDisponiveisMin": 20,
-  "valorHoraMax": 120.0
-}
-
-Regras:
-- "cargoNome" deve conter o nome do cargo solicitado (ex: "Programador", "Analista de Dados", "Designer").
-- "cargoMinimo" deve conter uma das opções exatas: ESTAGIARIO, JUNIOR, PLENO, SENIOR.
-- Extraia palavras-chave técnicas da mensagem (competências).
-- Extraia soft skills se forem mencionadas.
-- Se mencionar "prazo curto" ou "dedicação parcial", ajuste horasDisponiveisMin.
-- Se mencionar orçamento, ajuste valorHoraMax.
-- Se não entender a solicitação, retorne {"erro": "Consulta não encontrada"}.
-""".trimIndent()
-
-    // Comandos válidos reconhecidos
-    private val comandosPermitidos = listOf(
-        "montar equipe",
-        "alocar profissionais",
-        "filtrar usuarios",
-        "listar competencias",
-        "listar softskills"
-    )
-
-    private fun validarMensagem(mensagem: String): Boolean {
-        val mensagemLower = mensagem.lowercase()
-        return comandosPermitidos.any { mensagemLower.contains(it) }
-    }
-
-    // Gera o filtro de busca baseado na mensagem
-    fun gerarFiltro(mensagem: String): FiltroAlocacao {
-        log.info(" Solicitando filtro ao Gemini para comando: \"{}\"", mensagem)
-
-        if (!validarMensagem(mensagem)) {
-            log.warn(" Comando inválido: '{}'", mensagem)
-            return FiltroAlocacao()
+        Você é o SunnyBOT, assistente de alocação da plataforma FiveGears.
+        Sua função é entender frases humanas sobre alocação de profissionais e gerar um JSON com os seguintes campos:
+        {
+            "cargoNome": "Programador",
+            "cargoMinimo": "JUNIOR",
+            "competencias": ["Kotlin", "Spring Boot"],
+            "softSkills": ["Proatividade", "Trabalho em equipe"],
+            "horasDisponiveisMin": 20,
+            "valorHoraMax": 120.0
         }
+
+        Regras:
+        - Normalize a senioridade para: ESTAGIARIO, JUNIOR, PLENO ou SENIOR.
+        - Interprete variações como: "jr", "júnior", "pl", "pleno", "sr", "sênior".
+        - Se não identificar cargo ou nível, diga explicitamente que não foi possível.
+        - Retorne **somente o JSON**, sem comentários ou explicações.
+
+        Exemplos:
+        Entrada: "Preciso de programador júnior com Kotlin e Spring Boot"
+        Saída: {"cargoNome":"Programador","cargoMinimo":"JUNIOR","competencias":["Kotlin","Spring Boot"],"softSkills":[],"horasDisponiveisMin":40,"valorHoraMax":120}
+
+        Entrada: "Quero estagiário de design UI/UX"
+        Saída: {"cargoNome":"Designer","cargoMinimo":"ESTAGIARIO","competencias":["UI/UX","Design"],"softSkills":[],"horasDisponiveisMin":20,"valorHoraMax":60}
+    """.trimIndent()
+
+    // =========================================
+    // 🔹 GERA FILTRO A PARTIR DA MENSAGEM
+    // =========================================
+    fun gerarFiltro(mensagem: String): FiltroAlocacao {
+        log.info("🧠 Solicitando filtro ao Gemini: '{}'", mensagem)
 
         val promptFinal = """
-            $promptBase
+        $promptBase
 
-            Comando: "$mensagem"
-        """.trimIndent()
+        Mensagem do usuário: "$mensagem"
+    """.trimIndent()
 
-        val body = """{ "contents": [{"parts": [{"text": "$promptFinal"}]}] }"""
+        // 🔒 Escapa aspas e remove quebras de linha para evitar JSON inválido
+        val promptEscapado = promptFinal
+            .replace("\"", "\\\"")
+            .replace("\n", " ")
+            .replace("\r", "")
+
+        val body = """{"contents":[{"parts":[{"text":"$promptEscapado"}]}]}"""
         val headers = HttpHeaders().apply { contentType = MediaType.APPLICATION_JSON }
         val entity = HttpEntity(body, headers)
         val url = "${config.baseUrl}?key=${config.apiKey}"
 
         return try {
             val response = restTemplate.exchange(url, HttpMethod.POST, entity, String::class.java)
-            log.info("Gemini retornou status {}", response.statusCode.value())
 
-            val texto = try {
-                val json: JsonNode = mapper.readTree(response.body)
-                val partes = json["candidates"]?.get(0)?.path("content")?.path("parts")
-                partes?.get(0)?.path("text")?.asText() ?: "{}"
-            } catch (e: Exception) {
-                log.error(" Erro ao processar resposta do Gemini: {}", e.message)
-                "{}"
+            if (response.statusCode != HttpStatus.OK) {
+                log.error("❌ Gemini retornou código ${response.statusCode}: ${response.body}")
+                throw RuntimeException("Falha na requisição ao Gemini (${response.statusCode})")
             }
 
-            val filtro = mapper.readValue(texto, FiltroAlocacao::class.java)
-            log.info(" Filtro gerado com sucesso: {}", mapper.writeValueAsString(filtro))
+            val textoOriginal = extrairTextoGemini(response.body ?: "{}")
+
+            // 🧹 Remove blocos markdown e limpa o texto antes de parsear
+            val textoLimpo = textoOriginal
+                .replace("```json", "")
+                .replace("```", "")
+                .trim()
+
+            log.info("📩 Resposta limpa do Gemini: {}", textoLimpo)
+
+            val filtro = try {
+                val parsed = mapper.readValue(textoLimpo, FiltroAlocacao::class.java)
+                if (parsed.cargoNome.isNullOrBlank() || parsed.cargoMinimo == null) {
+                    log.warn("⚠️ Filtro incompleto — aplicando fallback.")
+                    gerarFallback(mensagem)
+                } else parsed
+            } catch (e: Exception) {
+                log.error("⚠️ Falha ao interpretar JSON: {}", textoLimpo)
+                gerarFallback(mensagem)
+            }
+
+            log.info("✅ Filtro final: {}", mapper.writeValueAsString(filtro))
             filtro
+
         } catch (e: Exception) {
-            log.error(" Erro ao chamar Gemini API: {}", e.message)
-            FiltroAlocacao()
+            log.error("❌ Erro ao consultar Gemini: {}", e.message)
+            gerarFallback(mensagem)
         }
     }
 
+    private fun extrairTextoGemini(body: String): String {
+        return try {
+            val json: JsonNode = mapper.readTree(body)
+            json["candidates"]?.get(0)
+                ?.path("content")?.path("parts")?.get(0)?.path("text")
+                ?.asText() ?: "{}"
+        } catch (_: Exception) {
+            "{}"
+        }
+    }
+
+    // =========================================
+    // ⚙️ FALLBACK RESTRITIVO
+    // =========================================
+    private fun gerarFallback(mensagem: String): FiltroAlocacao {
+        val texto = mensagem.lowercase()
+
+        val cargoNome = when {
+            texto.contains("programador") -> "Programador"
+            texto.contains("analista") -> "Analista"
+            texto.contains("designer") -> "Designer"
+            texto.contains("desenvolvedor") -> "Desenvolvedor"
+            else -> null
+        }
+
+        val cargoMinimo = when {
+            texto.contains("estagi") -> SenioridadeCargo.ESTAGIARIO
+            texto.contains("jr") || texto.contains("júnior") -> SenioridadeCargo.JUNIOR
+            texto.contains("pl") || texto.contains("pleno") -> SenioridadeCargo.PLENO
+            texto.contains("sr") || texto.contains("sênior") || texto.contains("senior") -> SenioridadeCargo.SENIOR
+            else -> null
+        }
+
+        if (cargoNome == null || cargoMinimo == null) {
+            log.warn("❌ Mensagem vaga — nenhum cargo ou nível identificado.")
+            throw IllegalArgumentException("Mensagem vaga demais — especifique cargo e nível.")
+        }
+
+        return FiltroAlocacao(
+            cargoNome = cargoNome,
+            cargoMinimo = cargoMinimo,
+            competencias = emptyList(),
+            softSkills = emptyList(),
+            horasDisponiveisMin = 40,
+            valorHoraMax = 120.0
+        )
+    }
+
+    // =========================================
+    // 🔍 BUSCAR USUÁRIOS FILTRADOS
+    // =========================================
     fun buscarUsuarios(filtro: FiltroAlocacao): List<UsuarioAlocadoDTO?> {
-        log.info("Iniciando busca de usuários com filtro: {}", mapper.writeValueAsString(filtro))
+        log.info("🚀 Buscando usuários com filtro: {}", mapper.writeValueAsString(filtro))
 
         val usuarios = usuarioRepository.findAll()
-
-        val nivelFiltro = filtro.cargoMinimo
         val cargoDesejado = filtro.cargoNome?.trim()?.lowercase()
+        val nivelSolicitado = filtro.cargoMinimo
 
         val filtrados = usuarios.filter { usuario ->
             val cargosUsuario = usuarioCargoRepository.findByUsuario(usuario)
             val cargoAtual = cargosUsuario.firstOrNull() ?: return@filter false
 
-            // 1️⃣ Verifica se o cargo combina
-            if (cargoDesejado != null && !cargoAtual.cargo!!.nome.trim().lowercase().contains(cargoDesejado))
-                return@filter false
+            if (!cargoAtual.cargo!!.nome.lowercase().contains(cargoDesejado ?: "")) return@filter false
+            if (cargoAtual.senioridade != nivelSolicitado) return@filter false
 
-            // 2️⃣ Verifica se a senioridade combina
-            if (cargoAtual.senioridade != nivelFiltro) return@filter false
-
-            // 3️⃣ Filtra competências
-            val competenciasUsuario = usuarioCompetenciaRepository.findByUsuario(usuario)
-                .map { it.competencia.nome.trim().lowercase() }
-                .toSet()
-            if (!filtro.competencias.all { it.trim().lowercase() in competenciasUsuario }) return@filter false
-
-            // 4️⃣ Filtra soft skills
-            val softSkillsUsuario = usuarioSoftSkillRepository.findByUsuario(usuario)
-                .associate { it.softSkill.nome.trim().lowercase() to it.nivel.toEstrela() }
-            if (!filtro.softSkills.all { it.trim().lowercase() in softSkillsUsuario.keys }) return@filter false
-
-            // 5️⃣ Filtra valor/hora
-            usuario.valorHora?.let { if (it > filtro.valorHoraMax) return@filter false }
-
-            // 6️⃣ Filtra disponibilidade
-            val horasAtuais = usuarioProjetoRepository.findByUsuario(usuario)
+            val projetosAtivos = usuarioProjetoRepository.findByUsuario(usuario)
                 .filter { it.status.name == "ALOCADO" }
-                .sumOf { it.horasPorDia }
-            val horasDisponiveis = (40 - horasAtuais).coerceAtLeast(0)
-            horasDisponiveis >= filtro.horasDisponiveisMin
+            if (projetosAtivos.isNotEmpty()) return@filter false
+
+            true
         }.map { usuario ->
             val cargoAtual = usuarioCargoRepository.findByUsuario(usuario).firstOrNull()
             val projetosAtivos = usuarioProjetoRepository.findByUsuario(usuario)
@@ -174,9 +201,7 @@ Regras:
                     idCargo = cargoAtual?.cargo?.idCargo,
                     senioridade = cargoAtual?.senioridade?.name,
                     valorHora = usuario.valorHora ?: 0.0,
-                    horasDisponiveis = (40 - usuarioProjetoRepository.findByUsuario(usuario)
-                        .filter { it.status.name == "ALOCADO" }
-                        .sumOf { it.horasPorDia }).coerceAtLeast(0),
+                    horasDisponiveis = 40,
                     projetosAtivos = projetosAtivos,
                     softSkills = usuarioSoftSkillRepository.findByUsuario(usuario)
                         .associate { it.softSkill.nome to it.nivel.toEstrela() },
@@ -186,13 +211,11 @@ Regras:
             }
         }
 
-        log.info("→ {} usuários encontrados com cargo '{}' e nível '{}'", filtrados.size, cargoDesejado, nivelFiltro)
+        log.info("✅ {} usuários encontrados para cargo '{}' nível '{}'",
+            filtrados.size, cargoDesejado, nivelSolicitado)
         return filtrados
     }
 
-
-
-    //  Conversão de nível de soft skill em “estrelas”
     private fun NivelSoftSkill.toEstrela(): Int = when (this) {
         NivelSoftSkill.HORRIVEL -> 0
         NivelSoftSkill.BAIXO -> 1
