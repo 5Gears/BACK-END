@@ -10,4 +10,5 @@ interface UsuarioService {
     fun criar(dto: UsuarioDTO): ResponseEntity<UsuarioDTO>
     fun atualizar(id: Int, dto: UsuarioDTO): ResponseEntity<UsuarioDTO>
     fun deletar(id: Int): ResponseEntity<Void>
+    fun buscarPorEmail(email: String): ResponseEntity<UsuarioDTO>
 }

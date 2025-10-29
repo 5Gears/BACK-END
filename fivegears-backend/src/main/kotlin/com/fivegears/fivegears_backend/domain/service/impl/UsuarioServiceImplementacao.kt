@@ -38,6 +38,14 @@ class UsuarioServiceImplementacao(
         return ResponseEntity.ok(UsuarioMapper.toDTO(usuario, usuarioCargo))
     }
 
+    override fun buscarPorEmail(email: String): ResponseEntity<UsuarioDTO> {
+        val usuario = usuarioRepository.findByEmail(email)
+            ?: return ResponseEntity.notFound().build()
+
+        val usuarioCargo = usuarioCargoRepository.findByUsuario(usuario).firstOrNull()
+        return ResponseEntity.ok(UsuarioMapper.toDTO(usuario, usuarioCargo))
+    }
+
     override fun criar(dto: UsuarioDTO): ResponseEntity<UsuarioDTO> {
         // Cria usuário base
         val usuario = UsuarioMapper.toEntity(dto)

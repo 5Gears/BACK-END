@@ -31,4 +31,8 @@ class UsuarioController(
     @DeleteMapping("/{id}")
     fun deletar(@PathVariable id: Int): ResponseEntity<Void> =
         usuarioService.deletar(id)
+
+    @GetMapping(params = ["email"])
+    fun buscarPorEmail(@RequestParam email: String): ResponseEntity<UsuarioDTO> =
+        usuarioService.buscarPorEmail(email)
 }
