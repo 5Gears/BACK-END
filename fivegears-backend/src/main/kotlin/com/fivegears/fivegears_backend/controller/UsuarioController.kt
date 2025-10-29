@@ -32,7 +32,7 @@ class UsuarioController(
     fun deletar(@PathVariable id: Int): ResponseEntity<Void> =
         usuarioService.deletar(id)
 
-    @GetMapping(params = ["email"])
+    @GetMapping("/buscar")
     fun buscarPorEmail(@RequestParam email: String): ResponseEntity<UsuarioDTO> =
         usuarioService.buscarPorEmail(email)
 }
