@@ -14,7 +14,6 @@ class AssistenteController(
     private val projetoService: ProjetoServiceImplementacao
 ) {
 
-    // Etapa 1 – Validação do projeto
     @PostMapping("/validar-projeto")
     fun validarProjeto(@RequestBody request: MensagemRequest): ResponseEntity<Any> {
         val projeto = projetoService.buscarPorNome(request.nomeProjeto ?: "")
@@ -26,11 +25,14 @@ class AssistenteController(
         ))
     }
 
-    // Etapa 2 – Interpretar a necessidade e buscar profissionais
     @PostMapping("/demandar-profissionais")
     fun demandarProfissionais(@RequestBody request: MensagemRequest): ResponseEntity<Any> {
-        val projeto = projetoService.buscarPorNome(request.nomeProjeto ?: "")
-            ?: return ResponseEntity.badRequest().body(mapOf("erro" to "Projeto '${request.nomeProjeto}' não encontrado"))
+        val projeto = when {
+            request.idProjeto != null -> projetoService.buscarPorId(request.idProjeto)
+            !request.nomeProjeto.isNullOrBlank() -> projetoService.buscarPorNome(request.nomeProjeto)
+            else -> null
+        } ?: return ResponseEntity.badRequest()
+            .body(mapOf("erro" to "Projeto '${request.nomeProjeto}' não encontrado"))
 
         val filtro = geminiService.gerarFiltro(request.mensagem)
         val usuariosFiltrados = geminiService.buscarUsuarios(filtro)
