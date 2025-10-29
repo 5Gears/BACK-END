@@ -1,6 +1,9 @@
+package com.fivegears.fivegears_backend.controller
+
 import com.fivegears.fivegears_backend.domain.service.impl.GeminiServiceImplementacao
 import com.fivegears.fivegears_backend.domain.service.impl.ProjetoServiceImplementacao
 import com.fivegears.fivegears_backend.dto.MensagemRequest
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -9,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/assistente/chatbot")
+@Tag(name = "AssistenteBOT", description = "Chatbot alocação de pessoas")
 class AssistenteController(
     private val geminiService: GeminiServiceImplementacao,
     private val projetoService: ProjetoServiceImplementacao
