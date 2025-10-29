@@ -19,6 +19,7 @@ object UsuarioMapper {
         valorHora = entity.valorHora,
         idEmpresa = entity.empresa?.id,
         idNivel = entity.nivelPermissao?.id,
+        idCargo = usuarioCargo?.cargo?.idCargo,
         cargoNome = usuarioCargo?.cargo?.nome,
         senioridade = usuarioCargo?.senioridade?.name,
         experienciaAnos = usuarioCargo?.experienciaAnos
@@ -31,7 +32,7 @@ object UsuarioMapper {
         cpf = dto.cpf,
         telefone = dto.telefone,
         area = dto.area,
-        cargaHoraria = dto.cargaHoraria!!,
+        cargaHoraria = dto.cargaHoraria ?: 0,
         valorHora = dto.valorHora
     ).apply {
         empresa = dto.idEmpresa?.let { Empresa(it) }

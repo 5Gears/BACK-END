@@ -13,6 +13,7 @@ data class UsuarioDTO(
     val valorHora: Double? = null,
     val idEmpresa: Int? = null,
     val idNivel: Int? = null,
+    val idCargo: Int? = null,
     val cargoNome: String? = null,
     val senioridade: String? = null,
     val experienciaAnos: Int? = null

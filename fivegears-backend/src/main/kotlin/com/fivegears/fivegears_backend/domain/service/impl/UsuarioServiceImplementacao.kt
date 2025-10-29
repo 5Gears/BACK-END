@@ -47,29 +47,33 @@ class UsuarioServiceImplementacao(
     }
 
     override fun criar(dto: UsuarioDTO): ResponseEntity<UsuarioDTO> {
-        // Cria usuário base
         val usuario = UsuarioMapper.toEntity(dto)
         val savedUsuario = usuarioRepository.save(usuario)
 
-        // Cria login com senha padrão (hash do e-mail)
         val login = com.fivegears.fivegears_backend.entity.Login(
             usuario = savedUsuario,
             senha = HashUtils.sha256(savedUsuario.email)
         )
         loginRepository.save(login)
 
-        // Associa cargo pelo nome e define senioridade
-        dto.cargoNome?.let { nome ->
-            val cargo = cargoRepository.findByNome(nome)
-                ?: throw RuntimeException("Cargo '$nome' não encontrado")
+        // Buscar cargo por ID ou nome
+        val cargo = when {
+            dto.idCargo != null -> cargoRepository.findById(dto.idCargo)
+                .orElseThrow { RuntimeException("Cargo com ID ${dto.idCargo} não encontrado") }
+            !dto.cargoNome.isNullOrBlank() -> cargoRepository.findByNome(dto.cargoNome!!)
+                ?: throw RuntimeException("Cargo '${dto.cargoNome}' não encontrado")
+            else -> null
+        }
 
+        // Se tiver cargo, cria o vínculo
+        cargo?.let {
             val usuarioCargo = UsuarioCargo(
                 id = UsuarioCargoId(
                     idUsuario = savedUsuario.id,
-                    idCargo = cargo.idCargo
+                    idCargo = it.idCargo
                 ),
                 usuario = savedUsuario,
-                cargo = cargo,
+                cargo = it,
                 senioridade = dto.senioridade
                     ?.let { SenioridadeCargo.valueOf(it.uppercase()) }
                     ?: SenioridadeCargo.JUNIOR,
@@ -81,6 +85,7 @@ class UsuarioServiceImplementacao(
         val usuarioCargo = usuarioCargoRepository.findByUsuario(savedUsuario).firstOrNull()
         return ResponseEntity.ok(UsuarioMapper.toDTO(savedUsuario, usuarioCargo))
     }
+
 
     override fun atualizar(id: Int, dto: UsuarioDTO): ResponseEntity<UsuarioDTO> {
         val existente = usuarioRepository.findById(id)
@@ -104,13 +109,18 @@ class UsuarioServiceImplementacao(
             val updatedUsuario = usuarioRepository.save(usuario)
 
             dto.cargoNome?.let { nome ->
-                val cargo = cargoRepository.findByNome(nome)
-                    ?: throw RuntimeException("Cargo '$nome' não encontrado")
+                val cargo = when {
+                    dto.idCargo != null -> cargoRepository.findById(dto.idCargo)
+                        .orElseThrow { RuntimeException("Cargo com ID ${dto.idCargo} não encontrado") }
+                    !dto.cargoNome.isNullOrBlank() -> cargoRepository.findByNome(dto.cargoNome!!)
+                        ?: throw RuntimeException("Cargo '${dto.cargoNome}' não encontrado")
+                    else -> null
+                }
 
                 val usuarioCargo = UsuarioCargo(
                     id = UsuarioCargoId(
                         idUsuario = updatedUsuario.id,
-                        idCargo = cargo.idCargo
+                        idCargo = cargo?.idCargo
                     ),
                     usuario = updatedUsuario,
                     cargo = cargo,
