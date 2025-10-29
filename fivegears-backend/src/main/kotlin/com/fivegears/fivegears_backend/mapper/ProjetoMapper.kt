@@ -21,14 +21,14 @@ object ProjetoMapper {
             dataFim = entity.dataFim,
             clienteId = entity.cliente?.id,
             clienteNome = entity.cliente?.nome,
-            responsavelId = entity.responsavel.id,
-            responsavelNome = entity.responsavel.nome,
+            responsavelId = entity.responsavel?.id,
+            responsavelNome = entity.responsavel?.nome,
             competenciasRequeridas = entity.competenciasRequeridas
         )
 
-    fun fromRequest(dto: ProjetoRequestDTO, cliente: Cliente?, responsavel: Usuario): Projeto =
+    fun fromRequest(dto: ProjetoRequestDTO, cliente: Cliente?, responsavel: Usuario?): Projeto =
         Projeto(
-            nome = dto.nome,
+            nome = dto.nome ?: throw RuntimeException("O nome do projeto é obrigatório."),
             descricao = dto.descricao,
             tempoEstimadoHoras = dto.tempoEstimadoHoras,
             orcamento = dto.orcamento,
@@ -36,7 +36,8 @@ object ProjetoMapper {
             dataInicio = dto.dataInicio,
             dataFim = dto.dataFim,
             cliente = cliente,
-            responsavel = responsavel,
+            responsavel = responsavel
+                ?: throw RuntimeException("O responsável pelo projeto é obrigatório."),
             competenciasRequeridas = dto.competenciasRequeridas
         )
 }

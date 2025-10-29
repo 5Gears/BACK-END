@@ -37,8 +37,18 @@ class ProjetoServiceImplementacao(
             .orElseThrow { RuntimeException("Projeto com ID $id não encontrado") }
 
     override fun criar(request: ProjetoRequestDTO): ProjetoResponseDTO {
+        // Validação mínima
+        if (request.nome.isNullOrBlank()) {
+            throw RuntimeException("O nome do projeto é obrigatório.")
+        }
+
+        if (request.responsavelId == null) {
+            throw RuntimeException("O responsável pelo projeto é obrigatório na criação.")
+        }
+
         val cliente = request.clienteId?.let {
-            clienteRepository.findById(it).orElseThrow { RuntimeException("Cliente não encontrado") }
+            clienteRepository.findById(it)
+                .orElseThrow { RuntimeException("Cliente não encontrado") }
         }
 
         val responsavel = usuarioRepository.findById(request.responsavelId)
@@ -46,30 +56,35 @@ class ProjetoServiceImplementacao(
 
         val projeto = ProjetoMapper.fromRequest(request, cliente, responsavel)
         val salvo = projetoRepository.save(projeto)
+
         return ProjetoMapper.toDTO(salvo)
     }
-
     override fun atualizar(id: Int, request: ProjetoRequestDTO): ProjetoResponseDTO {
         val projetoExistente = projetoRepository.findById(id)
             .orElseThrow { RuntimeException("Projeto com ID $id não encontrado") }
 
-        var cliente = request.clienteId?.let {
-            clienteRepository.findById(it).orElseThrow { RuntimeException("Cliente não encontrado") }
+        // cliente é opcional — só atualiza se vier no request
+        val cliente = request.clienteId?.let {
+            clienteRepository.findById(it)
+                .orElseThrow { RuntimeException("Cliente não encontrado") }
         }
 
-        val responsavel = usuarioRepository.findById(request.responsavelId)
-            .orElseThrow { RuntimeException("Responsável não encontrado") }
+        // responsável agora também é opcional
+        val responsavel = request.responsavelId?.let {
+            usuarioRepository.findById(it)
+                .orElseThrow { RuntimeException("Responsável não encontrado") }
+        }
 
         projetoExistente.apply {
-            nome = request.nome
-            descricao = request.descricao
-            tempoEstimadoHoras = request.tempoEstimadoHoras
-            orcamento = request.orcamento
-            dataInicio = request.dataInicio
-            dataFim = request.dataFim
-            cliente = cliente
-            this.responsavel = responsavel
-            competenciasRequeridas = request.competenciasRequeridas
+            request.nome?.let { nome = it }
+            request.descricao?.let { descricao = it }
+            request.tempoEstimadoHoras?.let { tempoEstimadoHoras = it }
+            request.orcamento?.let { orcamento = it }
+            request.dataInicio?.let { dataInicio = it }
+            request.dataFim?.let { dataFim = it }
+            cliente?.let { this.cliente = it }
+            responsavel?.let { this.responsavel = it }
+            request.competenciasRequeridas?.let { competenciasRequeridas = it }
         }
 
         val salvo = projetoRepository.save(projetoExistente)
