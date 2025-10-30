@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.http.*
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
+import java.math.BigDecimal
 
 @Service
 class GeminiServiceImplementacao(
@@ -160,7 +161,7 @@ class GeminiServiceImplementacao(
             competencias = emptyList(),
             softSkills = emptyList(),
             horasDisponiveisMin = 40,
-            valorHoraMax = 120.0
+            valorHoraMax = BigDecimal(120.00)
         )
     }
 
@@ -200,7 +201,7 @@ class GeminiServiceImplementacao(
                     cargo = cargoAtual?.cargo?.nome,
                     idCargo = cargoAtual?.cargo?.idCargo,
                     senioridade = cargoAtual?.senioridade?.name,
-                    valorHora = usuario.valorHora ?: 0.0,
+                    valorHora = usuario.valorHora ?: BigDecimal(0.0),
                     horasDisponiveis = 40,
                     projetosAtivos = projetosAtivos,
                     softSkills = usuarioSoftSkillRepository.findByUsuario(usuario)

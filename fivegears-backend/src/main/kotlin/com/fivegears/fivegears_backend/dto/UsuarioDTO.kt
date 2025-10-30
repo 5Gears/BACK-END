@@ -10,7 +10,7 @@ data class UsuarioDTO(
     val telefone: String? = null,
     val area: String? = null,
     val cargaHoraria: Int? = null,
-    val valorHora: Double? = null,
+    val valorHora: BigDecimal? = null,
     val idEmpresa: Int? = null,
     val idNivel: Int? = null,
     val idCargo: Int? = null,

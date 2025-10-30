@@ -3,6 +3,7 @@ package com.fivegears.fivegears_backend.entity
 import com.fasterxml.jackson.annotation.JsonBackReference
 import com.fasterxml.jackson.annotation.JsonManagedReference
 import jakarta.persistence.*
+import java.math.BigDecimal
 
 @Entity
 @Table(name = "usuario")
@@ -28,7 +29,7 @@ data class Usuario(
     var cargaHoraria: Int = 40,
 
     @Column(name = "valor_hora")
-    var valorHora: Double? = 0.0,
+    var valorHora: BigDecimal? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_empresa")
