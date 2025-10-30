@@ -5,20 +5,30 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Service
 import java.io.FileInputStream
+import java.net.URL
 
 @Service
 class EscoImportService(private val jdbc: JdbcTemplate) {
 
     fun importarPlanilha(caminhoArquivo: String) {
-        val workbook = XSSFWorkbook(FileInputStream(caminhoArquivo))
+        println("🔍 Iniciando importação da planilha: $caminhoArquivo")
+
+        val inputStream = if (caminhoArquivo.startsWith("http", ignoreCase = true)) {
+            println("🌐 Detectado caminho remoto (S3 ou URL). Baixando arquivo...")
+            URL(caminhoArquivo).openStream()
+        } else {
+            println("📂 Detectado caminho local. Lendo arquivo do disco...")
+            FileInputStream(caminhoArquivo)
+        }
+
+        val workbook = XSSFWorkbook(inputStream)
         val sheet = workbook.getSheetAt(0)
 
         val cargosMap = mutableMapOf<String, Int>()
         val competenciasMap = mutableMapOf<String, Int>()
         val relacoes = mutableListOf<Triple<Int, Int, String>>()
 
-        println("Lendo planilha: ${sheet.sheetName}")
-        println("Total de linhas: ${sheet.lastRowNum}")
+        println("✅ Planilha '${sheet.sheetName}' carregada. Total de linhas: ${sheet.lastRowNum}")
 
         for (i in 1..sheet.lastRowNum) {
             val linha = sheet.getRow(i) ?: continue
@@ -35,14 +45,8 @@ class EscoImportService(private val jdbc: JdbcTemplate) {
             val idCargo = cargosMap.getOrPut(cargoNome) {
                 jdbc.query("SELECT id_cargo FROM cargo WHERE nome = ?", arrayOf(cargoNome)) { rs, _ -> rs.getInt(1) }
                     .firstOrNull() ?: run {
-                    jdbc.update(
-                        "INSERT INTO cargo (nome, fonte) VALUES (?, 'IMPORTADO')",
-                        cargoNome
-                    )
-                    jdbc.query(
-                        "SELECT id_cargo FROM cargo WHERE nome = ?",
-                        arrayOf(cargoNome)
-                    ) { rs, _ -> rs.getInt(1) }.first()
+                    jdbc.update("INSERT INTO cargo (nome, fonte) VALUES (?, 'IMPORTADO')", cargoNome)
+                    jdbc.query("SELECT id_cargo FROM cargo WHERE nome = ?", arrayOf(cargoNome)) { rs, _ -> rs.getInt(1) }.first()
                 }
             }
 
@@ -50,10 +54,7 @@ class EscoImportService(private val jdbc: JdbcTemplate) {
                 jdbc.query("SELECT id_competencia FROM competencia WHERE nome = ?", arrayOf(competenciaNome)) { rs, _ -> rs.getInt(1) }
                     .firstOrNull() ?: run {
                     jdbc.update("INSERT INTO competencia (nome) VALUES (?)", competenciaNome)
-                    jdbc.query(
-                        "SELECT id_competencia FROM competencia WHERE nome = ?",
-                        arrayOf(competenciaNome)
-                    ) { rs, _ -> rs.getInt(1) }.first()
+                    jdbc.query("SELECT id_competencia FROM competencia WHERE nome = ?", arrayOf(competenciaNome)) { rs, _ -> rs.getInt(1) }.first()
                 }
             }
 
@@ -70,8 +71,9 @@ class EscoImportService(private val jdbc: JdbcTemplate) {
             jdbc.batchUpdate(sql, batch.map { arrayOf(it.first, it.second, it.third) })
         }
 
-        println("Importação concluída: ${cargosMap.size} cargos, ${competenciasMap.size} competências, ${relacoes.size} relações.")
+        println("🎯 Importação concluída: ${cargosMap.size} cargos, ${competenciasMap.size} competências, ${relacoes.size} relações.")
         workbook.close()
+        inputStream.close()
     }
 
     private fun getCellValue(cell: Cell?): String? = when (cell?.cellType) {
