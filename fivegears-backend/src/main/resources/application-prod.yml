@@ -1,17 +1,17 @@
 spring:
   datasource:
-    url: jdbc:mysql://${DB_HOST:fivegears-db}:${DB_PORT:3306}/FiveGears?useSSL=false&serverTimezone=UTC
+    url: jdbc:mysql://${DB_HOST:fivegears-db}:${DB_PORT:3306}/${DB_NAME:FiveGears}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: ${DB_USER:fivegears_user}
     password: ${DB_PASSWORD:senhaSegura}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
-      ddl-auto: validate   # apenas valida o schema, não altera
-    show-sql: false
+      ddl-auto: update
+    properties:
+      hibernate.dialect: org.hibernate.dialect.MySQL8Dialect
+      show-sql: true
 
-server:
-  port: 8080
 
 esco:
   bucket-url: "https://bucket-raw-grupo5-fivegears.s3.us-east-1.amazonaws.com/dados-esco/ESCO_cargos_competencias_limpo.xlsx"
