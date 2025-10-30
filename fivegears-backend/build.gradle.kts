@@ -21,6 +21,8 @@ repositories {
 }
 
 dependencies {
+	implementation("org.apache.pdfbox:pdfbox:2.0.30")
+	implementation("org.json:json:20231013")
 	implementation("org.apache.poi:poi-ooxml:5.2.3")
 	implementation("org.json:json:20231013")
 	implementation("com.fasterxml.jackson.datatype:jackson-datatype-hibernate5:2.17.2")

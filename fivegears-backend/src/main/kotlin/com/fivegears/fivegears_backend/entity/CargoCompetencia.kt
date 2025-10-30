@@ -20,7 +20,6 @@ data class CargoCompetencia(
     @JoinColumn(name = "id_competencia")
     val competencia: Competencia,
 
-    val peso: Int = 1,
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_relacao")

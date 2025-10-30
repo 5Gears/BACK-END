@@ -6,11 +6,13 @@ import com.fivegears.fivegears_backend.dto.ProjetoRequestDTO
 import com.fivegears.fivegears_backend.dto.ProjetoResponseDTO
 import com.fivegears.fivegears_backend.entity.UsuarioProjeto
 import com.fivegears.fivegears_backend.entity.enum.StatusAlocacao
+import com.fivegears.fivegears_backend.entity.enum.StatusAnalise
 import com.fivegears.fivegears_backend.entity.enum.StatusProjeto
 import com.fivegears.fivegears_backend.mapper.ProjetoMapper
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
+import java.util.*
 
 @Service
 @Transactional
@@ -19,7 +21,8 @@ class ProjetoServiceImplementacao(
     private val usuarioProjetoRepository: UsuarioProjetoRepository,
     private val usuarioRepository: UsuarioRepository,
     private val cargoRepository: CargoRepository,
-    private val clienteRepository: ClienteRepository
+    private val clienteRepository: ClienteRepository,
+    private val projetoAnaliseRepository: ProjetoAnaliseRepository
 ) : ProjetoService {
 
     override fun buscarPorNome(nome: String): ProjetoResponseDTO {
@@ -37,7 +40,7 @@ class ProjetoServiceImplementacao(
             .orElseThrow { RuntimeException("Projeto com ID $id não encontrado") }
 
     override fun criar(request: ProjetoRequestDTO): ProjetoResponseDTO {
-        // Validação mínima
+
         if (request.nome.isNullOrBlank()) {
             throw RuntimeException("O nome do projeto é obrigatório.")
         }
@@ -45,6 +48,31 @@ class ProjetoServiceImplementacao(
         if (request.responsavelId == null) {
             throw RuntimeException("O responsável pelo projeto é obrigatório na criação.")
         }
+
+
+        if (!request.draftId.isNullOrBlank()) {
+            try {
+                val draftUUID = UUID.fromString(request.draftId)
+                val analise = projetoAnaliseRepository.findByIdAndStatus(draftUUID, StatusAnalise.ATIVO)
+                    .orElseThrow { RuntimeException("Rascunho de análise inválido ou já utilizado.") }
+
+                // Preenche campos vazios do request com dados da análise
+                val descricaoFinal = request.descricao ?: analise.descricaoExtraida
+                val competenciasFinal = request.competenciasRequeridas ?: analise.competenciasRequeridas
+
+                // Atualiza o request para usar os dados da análise
+                request.descricao = descricaoFinal
+                request.competenciasRequeridas = competenciasFinal
+
+                // Marca a análise como usada
+                analise.status = StatusAnalise.USADO
+                projetoAnaliseRepository.save(analise)
+
+            } catch (e: IllegalArgumentException) {
+                throw RuntimeException("O ID de rascunho informado é inválido.")
+            }
+        }
+
 
         val cliente = request.clienteId?.let {
             clienteRepository.findById(it)
@@ -59,6 +87,7 @@ class ProjetoServiceImplementacao(
 
         return ProjetoMapper.toDTO(salvo)
     }
+
     override fun atualizar(id: Int, request: ProjetoRequestDTO): ProjetoResponseDTO {
         val projetoExistente = projetoRepository.findById(id)
             .orElseThrow { RuntimeException("Projeto com ID $id não encontrado") }
