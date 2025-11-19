@@ -6,11 +6,19 @@ import com.fivegears.fivegears_backend.entity.Cliente
 import com.fivegears.fivegears_backend.entity.Projeto
 import com.fivegears.fivegears_backend.entity.Usuario
 import com.fivegears.fivegears_backend.entity.enum.StatusProjeto
+import java.time.LocalDate
 
 object ProjetoMapper {
 
-    fun toDTO(entity: Projeto): ProjetoResponseDTO =
-        ProjetoResponseDTO(
+    fun toDTO(entity: Projeto): ProjetoResponseDTO {
+        val hoje = LocalDate.now()
+
+        val atrasado = entity.dataFim?.let { dataFim ->
+            dataFim.isBefore(hoje) &&
+                    entity.status == StatusProjeto.EM_DESENVOLVIMENTO
+        } ?: false
+
+        return ProjetoResponseDTO(
             id = entity.id ?: 0,
             nome = entity.nome,
             descricao = entity.descricao,
@@ -23,8 +31,10 @@ object ProjetoMapper {
             clienteNome = entity.cliente?.nome,
             responsavelId = entity.responsavel?.id,
             responsavelNome = entity.responsavel?.nome,
-            competenciasRequeridas = entity.competenciasRequeridas
+            competenciasRequeridas = entity.competenciasRequeridas,
+            atrasado = atrasado
         )
+    }
 
     fun fromRequest(dto: ProjetoRequestDTO, cliente: Cliente?, responsavel: Usuario?): Projeto =
         Projeto(
@@ -38,6 +48,6 @@ object ProjetoMapper {
             cliente = cliente,
             responsavel = responsavel
                 ?: throw RuntimeException("O responsável pelo projeto é obrigatório."),
-            competenciasRequeridas = dto.competenciasRequeridas
+            competenciasRequeridas = dto.competenciasRequeridas?.takeIf { it.isNotBlank() }
         )
 }

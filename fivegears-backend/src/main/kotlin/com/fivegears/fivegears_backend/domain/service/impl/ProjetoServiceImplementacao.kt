@@ -49,22 +49,30 @@ class ProjetoServiceImplementacao(
             throw RuntimeException("O responsável pelo projeto é obrigatório na criação.")
         }
 
+        // VALIDAR DATAS ================================================
+        val hoje = LocalDate.now()
 
+        if (request.dataInicio != null && request.dataInicio.isBefore(hoje)) {
+            throw RuntimeException("A data de início não pode estar no passado.")
+        }
+
+        if (request.dataInicio != null && request.dataFim != null) {
+            if (request.dataFim.isBefore(request.dataInicio)) {
+                throw RuntimeException("A data de término não pode ser anterior à data de início.")
+            }
+        }
+        // ===============================================================
+
+        // RASCUNHO DE ANÁLISE (PDF)
         if (!request.draftId.isNullOrBlank()) {
             try {
                 val draftUUID = UUID.fromString(request.draftId)
                 val analise = projetoAnaliseRepository.findByIdAndStatus(draftUUID, StatusAnalise.ATIVO)
                     .orElseThrow { RuntimeException("Rascunho de análise inválido ou já utilizado.") }
 
-                // Preenche campos vazios do request com dados da análise
-                val descricaoFinal = request.descricao ?: analise.descricaoExtraida
-                val competenciasFinal = request.competenciasRequeridas ?: analise.competenciasRequeridas
+                request.descricao = request.descricao ?: analise.descricaoExtraida
+                request.competenciasRequeridas = request.competenciasRequeridas ?: analise.competenciasRequeridas
 
-                // Atualiza o request para usar os dados da análise
-                request.descricao = descricaoFinal
-                request.competenciasRequeridas = competenciasFinal
-
-                // Marca a análise como usada
                 analise.status = StatusAnalise.USADO
                 projetoAnaliseRepository.save(analise)
 
@@ -72,7 +80,6 @@ class ProjetoServiceImplementacao(
                 throw RuntimeException("O ID de rascunho informado é inválido.")
             }
         }
-
 
         val cliente = request.clienteId?.let {
             clienteRepository.findById(it)
@@ -92,17 +99,29 @@ class ProjetoServiceImplementacao(
         val projetoExistente = projetoRepository.findById(id)
             .orElseThrow { RuntimeException("Projeto com ID $id não encontrado") }
 
-        // cliente é opcional — só atualiza se vier no request
         val cliente = request.clienteId?.let {
             clienteRepository.findById(it)
                 .orElseThrow { RuntimeException("Cliente não encontrado") }
         }
 
-        // responsável agora também é opcional
         val responsavel = request.responsavelId?.let {
             usuarioRepository.findById(it)
                 .orElseThrow { RuntimeException("Responsável não encontrado") }
         }
+
+        // VALIDAR DATAS TAMBÉM EM ATUALIZAÇÃO ================================
+        val hoje = LocalDate.now()
+
+        if (request.dataInicio != null && request.dataInicio.isBefore(hoje)) {
+            throw RuntimeException("A data de início não pode estar no passado.")
+        }
+
+        if (request.dataInicio != null && request.dataFim != null) {
+            if (request.dataFim.isBefore(request.dataInicio)) {
+                throw RuntimeException("A data de término não pode ser anterior à data de início.")
+            }
+        }
+        // =====================================================================
 
         projetoExistente.apply {
             request.nome?.let { nome = it }
@@ -120,6 +139,7 @@ class ProjetoServiceImplementacao(
         return ProjetoMapper.toDTO(salvo)
     }
 
+    // RESTANTE DO CÓDIGO PERMANECE IGUAL =====================================
     override fun deletar(id: Int) {
         val projeto = projetoRepository.findById(id)
             .orElseThrow { RuntimeException("Projeto com ID $id não encontrado") }
@@ -197,7 +217,7 @@ class ProjetoServiceImplementacao(
         }
 
         projeto.status = if (concluido) StatusProjeto.CONCLUIDO else StatusProjeto.CANCELADO
-        projeto.dataFim = java.time.LocalDate.now()
+        projeto.dataFim = LocalDate.now()
 
         val salvo = projetoRepository.save(projeto)
         return ProjetoMapper.toDTO(salvo)

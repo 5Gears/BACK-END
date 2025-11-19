@@ -21,6 +21,8 @@ data class Projeto(
     @Column(nullable = false)
     var nome: String,
 
+    @Lob
+    @Column(columnDefinition = "TEXT")
     var descricao: String? = null,
 
     @Column(name = "tempo_estimado_horas")
@@ -42,6 +44,8 @@ data class Projeto(
     @JsonManagedReference(value = "projeto-usuarioProjeto")
     val usuarios: MutableList<UsuarioProjeto> = mutableListOf(),
 
+    @Lob
+    @Column(columnDefinition = "TEXT")
     var competenciasRequeridas: String? = null
 )
 

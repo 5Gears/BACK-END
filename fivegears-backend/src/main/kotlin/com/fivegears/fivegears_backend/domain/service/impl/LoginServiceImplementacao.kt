@@ -21,7 +21,18 @@ class LoginServiceImplementacao(
     private val statusUsuarioRepository: StatusUsuarioRepository
 ) : LoginService {
 
-    override fun primeiroAcesso(email: String, novaSenha: String) {
+    /**
+     * Verifica se o e-mail existe e retorna se é primeiro acesso.
+     */
+    override fun verificarPrimeiroAcesso(email: String): Boolean {
+        val login = loginRepository.findByUsuarioEmail(email)
+            ?: throw RuntimeException("Usuário não encontrado")
+
+        return login.primeiroAcesso
+    }
+
+    override fun primeiroAcesso(email: String, senhaTemporaria: String, novaSenha: String) {
+
         val login = loginRepository.findByUsuarioEmail(email)
             ?: throw RuntimeException("Usuário não encontrado")
 
@@ -29,18 +40,27 @@ class LoginServiceImplementacao(
             throw RuntimeException("Usuário já realizou o primeiro acesso anteriormente.")
         }
 
+        // 👉 Valida a senha temporária (com hash)
+        val hashTemporariaDigitada = HashUtils.sha256(senhaTemporaria)
+        if (login.senha != hashTemporariaDigitada) {
+            throw RuntimeException("Senha temporária inválida")
+        }
+
+        // 👉 Regras de segurança
         if (novaSenha.contains(login.usuario.email, ignoreCase = true)) {
             throw RuntimeException("A nova senha não pode conter o e-mail do usuário.")
         }
 
-        // Criptografa e salva a nova senha
+        // 👉 Salva nova senha com hash
         login.senha = HashUtils.sha256(novaSenha)
-
-        // Marca como concluído o primeiro acesso
         login.primeiroAcesso = false
+
         loginRepository.save(login)
     }
 
+    /**
+     * Login normal
+     */
     override fun login(email: String, senha: String?): Usuario {
         if (senha.isNullOrBlank()) {
             throw RuntimeException("A senha não pode estar vazia")
@@ -49,33 +69,28 @@ class LoginServiceImplementacao(
         val login = loginRepository.findByUsuarioEmail(email)
             ?: throw RuntimeException("Usuário não encontrado")
 
-        // Verifica se ainda está no primeiro acesso
         if (login.primeiroAcesso) {
             throw RuntimeException("Usuário precisa realizar o primeiro acesso")
         }
 
-        // Verifica a senha (hash local)
         val senhaHash = HashUtils.sha256(senha)
         if (login.senha != senhaHash) {
             throw RuntimeException("Senha incorreta")
         }
 
+        // 👇 Sessão anterior
         val onlineStatus = statusUsuarioRepository.findById(1)
             .orElseThrow { RuntimeException("Status ONLINE não encontrado") }
         val offlineStatus = statusUsuarioRepository.findById(2)
             .orElseThrow { RuntimeException("Status OFFLINE não encontrado") }
 
-        // Finaliza sessão anterior, se houver
         sessaoRepository.findByLoginIdAndFimSessaoIsNull(login.id!!)?.let {
-            val nivel = login.usuario.nivelPermissao?.nome
-            if (nivel == NivelPermissaoEnum.FUNCIONARIO || nivel == NivelPermissaoEnum.GERENTE) {
-                it.status = offlineStatus
-                it.fimSessao = LocalDateTime.now()
-                sessaoRepository.save(it)
-            }
+            it.status = offlineStatus
+            it.fimSessao = LocalDateTime.now()
+            sessaoRepository.save(it)
         }
 
-        // Cria nova sessão
+        // 👇 Nova sessão
         val novaSessao = Sessao(
             login = login,
             status = onlineStatus,

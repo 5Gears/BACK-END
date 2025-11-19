@@ -16,5 +16,6 @@ data class ProjetoResponseDTO(
     val clienteNome: String?,
     val responsavelId: Int?,
     val responsavelNome: String?,
-    val competenciasRequeridas: String?
+    val competenciasRequeridas: String?,
+    val atrasado: Boolean
 )

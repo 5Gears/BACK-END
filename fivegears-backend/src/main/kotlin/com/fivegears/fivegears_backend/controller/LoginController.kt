@@ -15,26 +15,47 @@ class LoginController(
     private val loginRepository: LoginRepository
 ) {
 
+    @PostMapping("/verificar-primeiro-acesso")
+    fun verificarPrimeiroAcesso(@RequestBody body: Map<String, String>): ResponseEntity<Any> {
+        val email = body["email"] ?: return ResponseEntity
+            .badRequest()
+            .body(mapOf("erro" to "Email não informado"))
+
+        return try {
+            val primeiroAcesso = loginService.verificarPrimeiroAcesso(email)
+            ResponseEntity.ok(mapOf("primeiroAcesso" to primeiroAcesso))
+        } catch (e: RuntimeException) {
+            ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("erro" to e.message))
+        }
+    }
+
     @PostMapping("/primeiro-acesso")
     fun primeiroAcesso(@RequestBody dto: Map<String, String>): ResponseEntity<Any> {
         return try {
-            val email = dto["email"] ?: return ResponseEntity
-                .badRequest()
-                .body(mapOf("erro" to "E-mail não informado"))
 
-            val novaSenha = dto["senha"] ?: return ResponseEntity
-                .badRequest()
-                .body(mapOf("erro" to "Nova senha não informada"))
+            val email = dto["email"]
+                ?: return ResponseEntity.badRequest().body(mapOf("erro" to "E-mail não informado"))
 
-            loginService.primeiroAcesso(email, novaSenha)
+            val senhaTemporaria = dto["senhaTemporaria"]
+                ?: return ResponseEntity.badRequest().body(mapOf("erro" to "Senha temporária não informada"))
+
+            val novaSenha = dto["novaSenha"]
+                ?: return ResponseEntity.badRequest().body(mapOf("erro" to "Nova senha não informada"))
+
+            loginService.primeiroAcesso(email, senhaTemporaria, novaSenha)
+
             ResponseEntity.ok(mapOf("mensagem" to "Senha alterada com sucesso!"))
+
         } catch (e: RuntimeException) {
+
             val status = when {
-                e.message?.contains("já alterada") == true -> HttpStatus.CONFLICT
-                e.message?.contains("não pode conter") == true -> HttpStatus.BAD_REQUEST
+                e.message?.contains("temporária") == true -> HttpStatus.UNAUTHORIZED
                 e.message?.contains("não encontrado") == true -> HttpStatus.NOT_FOUND
+                e.message?.contains("já realizou") == true -> HttpStatus.CONFLICT
+                e.message?.contains("não pode conter") == true -> HttpStatus.BAD_REQUEST
                 else -> HttpStatus.BAD_REQUEST
             }
+
             ResponseEntity.status(status).body(mapOf("erro" to e.message))
         }
     }
